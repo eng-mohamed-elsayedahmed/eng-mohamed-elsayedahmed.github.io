@@ -12,7 +12,8 @@ it, so `/portfolio/` and any future project keep working unchanged.
 - `index.html` — the page
 - `style.css` — palette and typefaces follow the portfolio so both read as one identity
 - `app.js` — language (EN/AR with RTL) and theme (system/light/dark), both remembered in localStorage
-- `snake/index.html` — a small game in one file, no libraries
+- `games/` — four single-file games sharing one stylesheet
+- `tools/` — single-file browser utilities
 - `assets/profile.jpg` — copied from the portfolio repository
 
 ## Adding a project

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Snake — Mohamed Elsayed</title>
+<meta name="description" content="A small Snake game. No libraries, no build step, one HTML file. Arrow keys on desktop, swipe on touch.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/snake/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><rect x='22' y='22' width='20' height='20' rx='5' fill='white'/><rect x='46' y='22' width='20' height='20' rx='5' fill='white'/><rect x='46' y='46' width='20' height='20' rx='5' fill='white'/><rect x='46' y='70' width='20' height='20' rx='5' fill='%23a78bfa'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  (function(){ var t = localStorage.getItem('theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); })();
+</script>
+<style>
+:root{
+  --bg:#0a0a0f; --surface:#12121b; --board:#0f0f18; --line:#23233460; --line-solid:#242436;
+  --text:#f0f0f5; --text-2:#9a9ab0; --text-3:#6c6c85;
+  --accent:#6366f1; --accent-2:#a78bfa; --food:#f472b6; --grid:#ffffff08;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f8f9fc; --surface:#ffffff; --board:#eef0f8; --line:#e5e7f1; --line-solid:#dfe1ee;
+    --text:#14141f; --text-2:#55556b; --text-3:#8a8aa0; --accent-2:#7c5cf0; --grid:#00000008;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f8f9fc; --surface:#ffffff; --board:#eef0f8; --line:#e5e7f1; --line-solid:#dfe1ee;
+  --text:#14141f; --text-2:#55556b; --text-3:#8a8aa0; --accent-2:#7c5cf0; --grid:#00000008;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;min-block-size:100vh;background:var(--bg);color:var(--text);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;align-items:center;
+  padding:clamp(1rem,4vh,2rem) 1rem 2rem;gap:1rem;
+  touch-action:manipulation;
+}
+.top{inline-size:100%;max-inline-size:460px;display:flex;align-items:center;gap:1rem}
+.back{font-family:var(--mono);font-size:.76rem;color:var(--text-3);text-decoration:none}
+.back:hover{color:var(--accent-2)}
+h1{margin:0 0 0 auto;font-size:1rem;font-weight:600;letter-spacing:-.01em}
+
+.scores{
+  inline-size:100%;max-inline-size:460px;display:flex;gap:.6rem;
+}
+.sc{
+  flex:1;background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:.6rem .85rem;display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;
+}
+.sc b{font-family:var(--mono);font-size:1.25rem;font-weight:700;color:var(--accent-2);font-variant-numeric:tabular-nums}
+.sc span{font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-3)}
+
+.stage{position:relative;inline-size:100%;max-inline-size:460px}
+canvas{
+  inline-size:100%;block-size:auto;display:block;
+  background:var(--board);border:1px solid var(--line-solid);border-radius:14px;
+}
+.overlay{
+  position:absolute;inset:0;display:grid;place-content:center;gap:.5rem;text-align:center;
+  background:color-mix(in srgb,var(--bg) 78%, transparent);
+  backdrop-filter:blur(3px);border-radius:14px;padding:1rem;
+}
+.overlay[hidden]{display:none}
+.overlay h2{margin:0;font-size:1.3rem;font-weight:800;letter-spacing:-.02em}
+.overlay p{margin:0;font-size:.86rem;color:var(--text-2)}
+.btn{
+  margin-block-start:.5rem;justify-self:center;
+  font-family:var(--sans);font-size:.9rem;font-weight:600;
+  background:var(--accent);color:#fff;border:0;border-radius:99px;
+  padding:.6rem 1.4rem;cursor:pointer;transition:transform .18s,background .2s;
+}
+.btn:hover{transform:translateY(-2px);background:var(--accent-2)}
+.btn:focus-visible{outline:2px solid var(--accent-2);outline-offset:3px}
+
+.hint{
+  max-inline-size:460px;font-family:var(--mono);font-size:.72rem;color:var(--text-3);
+  text-align:center;line-height:1.9;
+}
+kbd{
+  font-family:var(--mono);background:var(--surface);border:1px solid var(--line-solid);
+  border-radius:5px;padding:.05rem .35rem;font-size:.7rem;color:var(--text-2);
+}
+@media (prefers-reduced-motion: reduce){ .btn{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="back" href="/games/">&larr; games</a>
+  <h1>Snake</h1>
+</div>
+
+<div class="scores">
+  <div class="sc"><span>Score</span><b id="score">0</b></div>
+  <div class="sc"><span>Best</span><b id="best">0</b></div>
+</div>
+
+<div class="stage">
+  <canvas id="board" width="460" height="460" aria-label="Snake game board"></canvas>
+  <div class="overlay" id="overlay">
+    <h2 id="ov-title">Snake</h2>
+    <p id="ov-text">Arrow keys or WASD. On a phone, swipe.</p>
+    <button class="btn" id="start" type="button">Play</button>
+  </div>
+</div>
+
+<p class="hint">
+  <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> move &nbsp;·&nbsp; <kbd>space</kbd> pause &nbsp;·&nbsp; <kbd>R</kbd> restart
+</p>
+
+<script>
+(function () {
+  var CELLS = 20, TICK_START = 132, TICK_MIN = 62;
+  var canvas = document.getElementById('board');
+  var ctx = canvas.getContext('2d');
+  var scoreEl = document.getElementById('score');
+  var bestEl = document.getElementById('best');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title');
+  var ovText = document.getElementById('ov-text');
+  var startBtn = document.getElementById('start');
+
+  var size, cell, snake, dir, queued, food, score, best, tick, timer, state;
+
+  best = parseInt(localStorage.getItem('snakeBest') || '0', 10);
+  bestEl.textContent = best;
+
+  function fit() {
+    var css = canvas.getBoundingClientRect().width || 460;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    size = Math.round(css);
+    cell = size / CELLS;
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function placeFood() {
+    var free = [];
+    for (var y = 0; y < CELLS; y++) {
+      for (var x = 0; x < CELLS; x++) {
+        var taken = snake.some(function (s) { return s.x === x && s.y === y; });
+        if (!taken) free.push({ x: x, y: y });
+      }
+    }
+    food = free[Math.floor(Math.random() * free.length)];
+  }
+
+  function reset() {
+    snake = [{ x: 9, y: 10 }, { x: 8, y: 10 }, { x: 7, y: 10 }];
+    dir = { x: 1, y: 0 };
+    queued = [];
+    score = 0;
+    tick = TICK_START;
+    scoreEl.textContent = '0';
+    placeFood();
+  }
+
+  function rounded(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function draw() {
+    if (!snake) return;
+    ctx.clearRect(0, 0, size, size);
+
+    ctx.strokeStyle = css('--grid');
+    ctx.lineWidth = 1;
+    for (var i = 1; i < CELLS; i++) {
+      ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, size); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(size, i * cell); ctx.stroke();
+    }
+
+    ctx.fillStyle = css('--food');
+    var pad = cell * 0.22;
+    rounded(food.x * cell + pad, food.y * cell + pad, cell - pad * 2, cell - pad * 2, cell * 0.28);
+
+    var accent = css('--accent'), accent2 = css('--accent-2');
+    for (var s = snake.length - 1; s >= 0; s--) {
+      ctx.fillStyle = s === 0 ? accent2 : accent;
+      ctx.globalAlpha = s === 0 ? 1 : 0.55 + 0.45 * (1 - s / snake.length);
+      var p = cell * 0.09;
+      rounded(snake[s].x * cell + p, snake[s].y * cell + p, cell - p * 2, cell - p * 2, cell * 0.3);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function step() {
+    if (queued.length) dir = queued.shift();
+    var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    var hitWall = head.x < 0 || head.y < 0 || head.x >= CELLS || head.y >= CELLS;
+    var hitSelf = snake.some(function (s, i) { return i < snake.length - 1 && s.x === head.x && s.y === head.y; });
+    if (hitWall || hitSelf) return over();
+
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      scoreEl.textContent = score;
+      tick = Math.max(TICK_MIN, TICK_START - score * 3);
+      clearInterval(timer);
+      timer = setInterval(step, tick);
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function show(title, text, button) {
+    ovTitle.textContent = title;
+    ovText.textContent = text;
+    startBtn.textContent = button;
+    overlay.hidden = false;
+  }
+
+  function play() {
+    if (state === 'over' || !snake) reset();
+    state = 'running';
+    overlay.hidden = true;
+    clearInterval(timer);
+    timer = setInterval(step, tick);
+    draw();
+  }
+
+  function pause() {
+    state = 'paused';
+    clearInterval(timer);
+    show('Paused', 'Score ' + score + '. Take your time.', 'Resume');
+  }
+
+  function over() {
+    state = 'over';
+    clearInterval(timer);
+    if (score > best) {
+      best = score;
+      bestEl.textContent = best;
+      localStorage.setItem('snakeBest', String(best));
+      show('New best', 'You scored ' + score + '. Nothing has beaten that yet.', 'Play again');
+    } else {
+      show('Game over', 'You scored ' + score + '. Best is ' + best + '.', 'Play again');
+    }
+    draw();
+  }
+
+  function turn(x, y) {
+    var last = queued.length ? queued[queued.length - 1] : dir;
+    if (last.x === -x && last.y === -y) return;      // no instant reversal
+    if (last.x === x && last.y === y) return;
+    if (queued.length < 2) queued.push({ x: x, y: y });
+  }
+
+  var KEYS = {
+    ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+    w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0]
+  };
+
+  document.addEventListener('keydown', function (e) {
+    var k = KEYS[e.key] || KEYS[e.key.toLowerCase()];
+    if (k) {
+      e.preventDefault();
+      if (state !== 'running') return;
+      turn(k[0], k[1]);
+      return;
+    }
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (state === 'running') pause();
+      else play();
+    }
+    if (e.key === 'r' || e.key === 'R') { state = 'over'; play(); }
+  });
+
+  // touch: swipe anywhere on the board
+  var sx = 0, sy = 0;
+  canvas.addEventListener('touchstart', function (e) {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  canvas.addEventListener('touchend', function (e) {
+    if (state !== 'running') return;
+    var dx = e.changedTouches[0].clientX - sx;
+    var dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+    if (Math.abs(dx) > Math.abs(dy)) turn(dx > 0 ? 1 : -1, 0);
+    else turn(0, dy > 0 ? 1 : -1);
+  }, { passive: true });
+
+  startBtn.addEventListener('click', play);
+  window.addEventListener('resize', fit);
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  }
+
+  reset();
+  fit();
+  state = 'idle';
+})();
+</script>
+
+</body>
+</html>

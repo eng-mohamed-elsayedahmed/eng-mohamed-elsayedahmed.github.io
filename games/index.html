@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Games — Mohamed Elsayed</title>
+<meta name="description" content="Four small games, each a single HTML file with no libraries: Snake, 2048, Minesweeper and Breakout. Keyboard on desktop, touch on mobile.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><circle cx='34' cy='50' r='11' fill='white'/><rect x='56' y='39' width='22' height='22' rx='6' fill='%23a78bfa'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="games.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  body{align-items:stretch}
+  .page{max-inline-size:720px;margin-inline:auto;inline-size:100%;display:flex;flex-direction:column;gap:1.5rem}
+  .head h1{margin:0;font-size:clamp(1.5rem,4vw,2rem);font-weight:800;letter-spacing:-.03em}
+  .head p{margin:.35rem 0 0;color:var(--text-2);font-size:.95rem;max-inline-size:62ch}
+  .list{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+  @media (max-width:600px){.list{grid-template-columns:1fr}}
+  .game{
+    display:block;text-decoration:none;color:inherit;
+    background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:1.15rem 1.2rem;
+    transition:border-color .2s var(--ease),background .2s var(--ease),transform .2s var(--ease);
+  }
+  .game:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line-solid));background:var(--surface-2);transform:translateY(-3px)}
+  .game:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .game code{font-family:var(--mono);font-size:.72rem;color:var(--accent-2);display:block;margin-block-end:.3rem}
+  .game h2{margin:0 0 .3rem;font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+  .game p{margin:0 0 .6rem;font-size:.89rem;color:var(--text-2)}
+  .meta{display:flex;flex-wrap:wrap;gap:.3rem}
+  .meta li{list-style:none;font-family:var(--mono);font-size:.66rem;color:var(--text-3);border:1px solid var(--line);border-radius:5px;padding:.1rem .45rem}
+  .meta{margin:0;padding:0}
+  .foot{padding-block-start:1.25rem;border-block-start:1px solid var(--line);font-size:.8rem;color:var(--text-3);display:flex;flex-wrap:wrap;gap:.5rem 1rem;justify-content:space-between}
+  .foot a{color:var(--text-2);text-decoration:none}
+  .foot a:hover{color:var(--accent-2)}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <a class="back" href="/">&larr; eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Games</h1>
+    <p>Four small games. Each is one HTML file with no libraries and no build step — open the page and it plays. All of them work with a keyboard on desktop and with touch on a phone.</p>
+  </header>
+
+  <div class="list">
+
+    <a class="game" href="/games/snake/">
+      <code>/games/snake/</code>
+      <h2>Snake</h2>
+      <p>The classic. Speeds up with every bite, and refuses the instant reversal that would kill you unfairly.</p>
+      <ul class="meta"><li>arrows / WASD</li><li>swipe</li><li>best score</li></ul>
+    </a>
+
+    <a class="game" href="/games/2048/">
+      <code>/games/2048/</code>
+      <h2>2048</h2>
+      <p>Slide and merge to reach 2048, then keep going for a bigger tile. One level of undo when a move goes wrong.</p>
+      <ul class="meta"><li>arrows / WASD</li><li>swipe</li><li>undo</li></ul>
+    </a>
+
+    <a class="game" href="/games/minesweeper/">
+      <code>/games/minesweeper/</code>
+      <h2>Minesweeper</h2>
+      <p>Three sizes. The first click is always safe, so no game is ever lost on the opening move.</p>
+      <ul class="meta"><li>click / right click</li><li>long press to flag</li><li>fastest time</li></ul>
+    </a>
+
+    <a class="game" href="/games/breakout/">
+      <code>/games/breakout/</code>
+      <h2>Breakout</h2>
+      <p>The paddle follows your mouse or finger, and where the ball lands on it decides the angle it leaves at.</p>
+      <ul class="meta"><li>mouse / drag</li><li>arrows</li><li>levels</li></ul>
+    </a>
+
+  </div>
+
+  <footer class="foot">
+    <span>Looking for the utilities instead? They are at <a href="/tools/">/tools/</a>.</span>
+    <a href="https://github.com/eng-mohamed-elsayedahmed/eng-mohamed-elsayedahmed.github.io" target="_blank" rel="noopener">View source &rarr;</a>
+  </footer>
+
+</div>
+</body>
+</html>

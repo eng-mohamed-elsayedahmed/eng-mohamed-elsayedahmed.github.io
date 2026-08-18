@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Minesweeper — Mohamed Elsayed</title>
+<meta name="description" content="Minesweeper in a single HTML file. Three sizes, first click is always safe, long press to flag on touch.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/minesweeper/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><circle cx='50' cy='52' r='22' fill='white'/><rect x='46' y='16' width='8' height='18' rx='4' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../games.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .field{
+    display:grid;gap:2px;padding:8px;aspect-ratio:1;
+    background:var(--board);border:1px solid var(--line-solid);border-radius:14px;
+    user-select:none;-webkit-user-select:none;
+  }
+  .cell{
+    display:grid;place-items:center;border:0;cursor:pointer;padding:0;
+    background:var(--surface-2);border-radius:4px;
+    font-family:var(--mono);font-weight:700;line-height:1;
+    color:var(--text-2);transition:background .12s;
+  }
+  .cell:hover{background:color-mix(in srgb,var(--accent) 22%, var(--surface-2))}
+  .cell.open{background:var(--grid);cursor:default}
+  .cell.open:hover{background:var(--grid)}
+  .cell.flag{color:var(--warn)}
+  .cell.mine{background:var(--bad);color:#fff}
+  .cell.wrong{background:color-mix(in srgb,var(--bad) 35%, var(--surface-2))}
+  .cell:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .n1{color:#60a5fa}.n2{color:#34d399}.n3{color:#f87171}.n4{color:#a78bfa}
+  .n5{color:#fbbf24}.n6{color:#22d3ee}.n7{color:#f472b6}.n8{color:#9a9ab0}
+</style>
+</head>
+<body>
+
+<div class="top wide">
+  <a class="back" href="/games/">&larr; games</a>
+  <h1>Minesweeper</h1>
+</div>
+
+<div class="scores wide">
+  <div class="sc"><span>Mines left</span><b id="mines">0</b></div>
+  <div class="sc"><span>Time</span><b id="time">0</b></div>
+</div>
+
+<div class="stage wide">
+  <div class="field" id="field"></div>
+  <div class="overlay" id="overlay" hidden>
+    <h2 id="ov-title"></h2>
+    <p id="ov-text"></p>
+    <button class="btn" id="ov-btn" type="button">New game</button>
+  </div>
+</div>
+
+<div class="bar wide">
+  <select id="level" aria-label="Difficulty">
+    <option value="9,10">Easy — 9×9, 10 mines</option>
+    <option value="12,22" selected>Medium — 12×12, 22 mines</option>
+    <option value="16,45">Hard — 16×16, 45 mines</option>
+  </select>
+  <button class="btn btn-s" id="restart" type="button">New game</button>
+</div>
+
+<p class="hint">Click to open &nbsp;·&nbsp; right click to flag &nbsp;·&nbsp; long press to flag on touch</p>
+
+<script>
+(function () {
+  var field = document.getElementById('field');
+  var minesEl = document.getElementById('mines'), timeEl = document.getElementById('time');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title'), ovText = document.getElementById('ov-text');
+  var levelSel = document.getElementById('level');
+
+  var N, MINES, cells, started, dead, timer, seconds, flags, opened;
+
+  function idx(y, x) { return y * N + x; }
+  function inside(y, x) { return y >= 0 && x >= 0 && y < N && x < N; }
+
+  function neighbours(y, x) {
+    var out = [];
+    for (var dy = -1; dy <= 1; dy++)
+      for (var dx = -1; dx <= 1; dx++)
+        if ((dy || dx) && inside(y + dy, x + dx)) out.push([y + dy, x + dx]);
+    return out;
+  }
+
+  function build() {
+    var parts = levelSel.value.split(',');
+    N = parseInt(parts[0], 10);
+    MINES = parseInt(parts[1], 10);
+    started = false; dead = false; seconds = 0; flags = 0; opened = 0;
+    clearInterval(timer);
+    timeEl.textContent = '0';
+    minesEl.textContent = MINES;
+    overlay.hidden = true;
+
+    cells = [];
+    field.style.gridTemplateColumns = 'repeat(' + N + ',1fr)';
+    field.innerHTML = '';
+    for (var y = 0; y < N; y++) {
+      for (var x = 0; x < N; x++) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cell';
+        b.style.fontSize = Math.max(9, Math.round(190 / N)) + 'px';
+        b.dataset.y = y; b.dataset.x = x;
+        field.appendChild(b);
+        cells.push({ el: b, mine: false, open: false, flag: false, n: 0 });
+      }
+    }
+  }
+
+  function layMines(safeY, safeX) {
+    var banned = {};
+    banned[idx(safeY, safeX)] = 1;
+    neighbours(safeY, safeX).forEach(function (p) { banned[idx(p[0], p[1])] = 1; });
+
+    var placed = 0;
+    while (placed < MINES) {
+      var i = Math.floor(Math.random() * cells.length);
+      if (cells[i].mine || banned[i]) continue;
+      cells[i].mine = true;
+      placed++;
+    }
+    for (var y = 0; y < N; y++) {
+      for (var x = 0; x < N; x++) {
+        var c = cells[idx(y, x)];
+        c.n = neighbours(y, x).filter(function (p) { return cells[idx(p[0], p[1])].mine; }).length;
+      }
+    }
+  }
+
+  function paint(c) {
+    var el = c.el;
+    el.className = 'cell';
+    el.textContent = '';
+    if (c.flag && !c.open) { el.classList.add('flag'); el.textContent = '⚑'; return; }
+    if (!c.open) return;
+    el.classList.add('open');
+    if (c.mine) { el.classList.add('mine'); el.textContent = '✳'; return; }
+    if (c.n) { el.classList.add('n' + c.n); el.textContent = c.n; }
+  }
+
+  function open(y, x) {
+    var c = cells[idx(y, x)];
+    if (c.open || c.flag) return;
+    c.open = true; opened++;
+    paint(c);
+    if (c.mine) return boom();
+    if (!c.n) neighbours(y, x).forEach(function (p) { open(p[0], p[1]); });
+  }
+
+  function boom() {
+    dead = true;
+    clearInterval(timer);
+    cells.forEach(function (c) {
+      if (c.mine) { c.open = true; paint(c); }
+      else if (c.flag) { c.el.classList.add('wrong'); }
+    });
+    show('Boom', 'You lasted ' + seconds + ' seconds.', 'Try again');
+  }
+
+  function checkWin() {
+    if (dead) return;
+    if (opened === cells.length - MINES) {
+      clearInterval(timer);
+      var key = 'mineBest' + N;
+      var prev = parseInt(localStorage.getItem(key) || '0', 10);
+      var note = 'Cleared in ' + seconds + ' seconds.';
+      if (!prev || seconds < prev) { localStorage.setItem(key, String(seconds)); note += ' That is your fastest at this size.'; }
+      else note += ' Your best here is ' + prev + '.';
+      show('Cleared', note, 'Play again');
+    }
+  }
+
+  function show(title, text, label) {
+    ovTitle.textContent = title;
+    ovText.textContent = text;
+    document.getElementById('ov-btn').textContent = label;
+    overlay.hidden = false;
+  }
+
+  function startClock() {
+    if (started) return;
+    started = true;
+    timer = setInterval(function () { seconds++; timeEl.textContent = seconds; }, 1000);
+  }
+
+  function toggleFlag(c) {
+    if (c.open || dead) return;
+    c.flag = !c.flag;
+    flags += c.flag ? 1 : -1;
+    minesEl.textContent = MINES - flags;
+    paint(c);
+  }
+
+  var pressTimer = null, longPressed = false;
+
+  field.addEventListener('click', function (e) {
+    var el = e.target.closest('.cell');
+    if (!el || dead || longPressed) { longPressed = false; return; }
+    var y = +el.dataset.y, x = +el.dataset.x;
+    if (!started) { layMines(y, x); startClock(); }
+    open(y, x);
+    checkWin();
+  });
+
+  field.addEventListener('contextmenu', function (e) {
+    var el = e.target.closest('.cell');
+    if (!el) return;
+    e.preventDefault();
+    if (!started) return;
+    toggleFlag(cells[idx(+el.dataset.y, +el.dataset.x)]);
+  });
+
+  field.addEventListener('touchstart', function (e) {
+    var el = e.target.closest('.cell');
+    if (!el || !started) return;
+    longPressed = false;
+    pressTimer = setTimeout(function () {
+      longPressed = true;
+      toggleFlag(cells[idx(+el.dataset.y, +el.dataset.x)]);
+    }, 380);
+  }, { passive: true });
+
+  ['touchend', 'touchmove', 'touchcancel'].forEach(function (ev) {
+    field.addEventListener(ev, function () { clearTimeout(pressTimer); }, { passive: true });
+  });
+
+  document.getElementById('ov-btn').addEventListener('click', build);
+  document.getElementById('restart').addEventListener('click', build);
+  levelSel.addEventListener('change', build);
+  document.addEventListener('keydown', function (e) { if (e.key === 'r' || e.key === 'R') build(); });
+
+  build();
+})();
+</script>
+</body>
+</html>
