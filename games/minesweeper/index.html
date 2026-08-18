@@ -239,6 +239,9 @@
   levelSel.addEventListener('change', build);
   document.addEventListener('keydown', function (e) { if (e.key === 'r' || e.key === 'R') build(); });
 
+  // a 12x12 board leaves ~30px cells on a phone, too small to tap accurately
+  if (window.innerWidth < 560) levelSel.value = '9,10';
+
   build();
 })();
 </script>

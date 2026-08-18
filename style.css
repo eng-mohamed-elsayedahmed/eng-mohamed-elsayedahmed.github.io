@@ -243,3 +243,10 @@ h1{
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition-duration:.001ms !important;animation-duration:.001ms !important}
 }
+
+/* fingers need a bigger target than a mouse pointer does */
+@media (pointer: coarse){
+  .btn, select, .ctl, .cta-btn{min-block-size:44px}
+  .keys button, .pad button, .presets button{min-block-size:46px}
+  .back{padding-block:.5rem}
+}

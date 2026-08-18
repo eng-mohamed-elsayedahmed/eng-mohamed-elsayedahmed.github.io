@@ -86,6 +86,23 @@ kbd{
   font-family:var(--mono);background:var(--surface);border:1px solid var(--line-solid);
   border-radius:5px;padding:.05rem .35rem;font-size:.7rem;color:var(--text-2);
 }
+
+.pad{
+  inline-size:100%;max-inline-size:460px;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+  gap:.5rem;margin-block-start:.25rem;
+}
+.pad button{
+  font-family:var(--mono);font-size:1.15rem;color:var(--text-2);
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:11px;
+  padding:.85rem 0;cursor:pointer;
+}
+.pad button:active{background:var(--surface-2);color:var(--accent-2)}
+.pad .up{grid-column:2;grid-row:1}
+.pad .left{grid-column:1;grid-row:2}
+.pad .down{grid-column:2;grid-row:2}
+.pad .right{grid-column:3;grid-row:2}
+@media (min-width:620px){.pad{display:none}}
 @media (prefers-reduced-motion: reduce){ .btn{transition:none} }
 </style>
 </head>
@@ -105,9 +122,17 @@ kbd{
   <canvas id="board" width="460" height="460" aria-label="Snake game board"></canvas>
   <div class="overlay" id="overlay">
     <h2 id="ov-title">Snake</h2>
-    <p id="ov-text">Arrow keys or WASD. On a phone, swipe.</p>
+    <p id="ov-text">Arrow keys or WASD. On a phone, swipe or use the buttons below.</p>
     <button class="btn" id="start" type="button">Play</button>
   </div>
+</div>
+
+
+<div class="pad">
+  <button class="up" type="button" data-d="up" aria-label="Up">&uarr;</button>
+  <button class="left" type="button" data-d="left" aria-label="Left">&larr;</button>
+  <button class="down" type="button" data-d="down" aria-label="Down">&darr;</button>
+  <button class="right" type="button" data-d="right" aria-label="Right">&rarr;</button>
 </div>
 
 <p class="hint">
@@ -302,6 +327,16 @@ kbd{
     if (Math.abs(dx) > Math.abs(dy)) turn(dx > 0 ? 1 : -1, 0);
     else turn(0, dy > 0 ? 1 : -1);
   }, { passive: true });
+
+
+  // on-screen controls, because a swipe alone is a poor way to steer on a phone
+  document.querySelector('.pad').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (state !== 'running') { play(); return; }
+    var d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[b.dataset.d];
+    if (d) turn(d[0], d[1]);
+  });
 
   startBtn.addEventListener('click', play);
   window.addEventListener('resize', fit);
