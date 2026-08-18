@@ -64,10 +64,11 @@
     <option value="12,22" selected>Medium — 12×12, 22 mines</option>
     <option value="16,45">Hard — 16×16, 45 mines</option>
   </select>
+  <button class="btn btn-s" id="flagBtn" type="button">Flag mode: off</button>
   <button class="btn btn-s" id="restart" type="button">New game</button>
 </div>
 
-<p class="hint">Click to open &nbsp;·&nbsp; right click to flag &nbsp;·&nbsp; long press to flag on touch</p>
+<p class="hint">Click to open &nbsp;·&nbsp; right click, long press, or flag mode to place a flag</p>
 
 <script>
 (function () {
@@ -203,10 +204,23 @@
 
   var pressTimer = null, longPressed = false;
 
+  var flagMode = false;
+  var flagBtn = document.getElementById('flagBtn');
+  flagBtn.addEventListener('click', function () {
+    flagMode = !flagMode;
+    flagBtn.textContent = 'Flag mode: ' + (flagMode ? 'on' : 'off');
+    flagBtn.classList.toggle('btn-s', !flagMode);
+  });
+
   field.addEventListener('click', function (e) {
     var el = e.target.closest('.cell');
     if (!el || dead || longPressed) { longPressed = false; return; }
     var y = +el.dataset.y, x = +el.dataset.x;
+    if (flagMode) {
+      if (!started) { layMines(y, x); startClock(); }   // first tap still lays a safe board
+      toggleFlag(cells[idx(y, x)]);
+      return;
+    }
     if (!started) { layMines(y, x); startClock(); }
     open(y, x);
     checkWin();

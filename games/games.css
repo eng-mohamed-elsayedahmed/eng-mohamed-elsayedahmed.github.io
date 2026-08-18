@@ -93,6 +93,24 @@ kbd{
 }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition-duration:.001ms !important;animation-duration:.001ms !important}}
 
+/* on-screen direction cross — a swipe alone is a poor way to steer on a phone */
+.pad{
+  inline-size:100%;max-inline-size:460px;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+  gap:.5rem;margin-block-start:.25rem;
+}
+.pad button{
+  font-family:var(--mono);font-size:1.15rem;color:var(--text-2);
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:11px;
+  padding:.85rem 0;cursor:pointer;
+}
+.pad button:active{background:var(--surface-2);color:var(--accent-2)}
+.pad .up{grid-column:2;grid-row:1}
+.pad .left{grid-column:1;grid-row:2}
+.pad .down{grid-column:2;grid-row:2}
+.pad .right{grid-column:3;grid-row:2}
+@media (min-width:620px){.pad{display:none}}
+
 /* fingers need a bigger target than a mouse pointer does */
 @media (pointer: coarse){
   .btn, select, .ctl, .cta-btn{min-block-size:44px}

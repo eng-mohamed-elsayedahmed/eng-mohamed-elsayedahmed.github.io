@@ -67,7 +67,15 @@
   <button class="btn btn-s" id="restart" type="button">New game</button>
 </div>
 
-<p class="hint"><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> or swipe &nbsp;·&nbsp; <kbd>U</kbd> undo &nbsp;·&nbsp; <kbd>R</kbd> new game</p>
+
+<div class="pad">
+  <button class="up" type="button" data-d="1" aria-label="Up">&uarr;</button>
+  <button class="left" type="button" data-d="0" aria-label="Left">&larr;</button>
+  <button class="down" type="button" data-d="3" aria-label="Down">&darr;</button>
+  <button class="right" type="button" data-d="2" aria-label="Right">&rarr;</button>
+</div>
+
+<p class="hint"><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>, swipe, or the buttons above &nbsp;·&nbsp; <kbd>U</kbd> undo &nbsp;·&nbsp; <kbd>R</kbd> new game</p>
 
 <script>
 (function () {
@@ -215,6 +223,11 @@
     if (ovBtn.textContent === 'Keep playing') { overlay.hidden = true; return; }
     reset();
   });
+  document.querySelector('.pad').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (b && overlay.hidden) move(+b.dataset.d);
+  });
+
   document.getElementById('undo').addEventListener('click', undo);
   document.getElementById('restart').addEventListener('click', reset);
   window.addEventListener('resize', render);
