@@ -95,6 +95,7 @@ kbd{
 
 /* on-screen direction cross — a swipe alone is a poor way to steer on a phone */
 .pad{
+  direction:ltr;                 /* arrows point where they point, whatever the text does */
   inline-size:100%;max-inline-size:460px;
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
   gap:.5rem;margin-block-start:.25rem;
@@ -117,3 +118,15 @@ kbd{
   .keys button, .pad button, .presets button{min-block-size:46px}
   .back{padding-block:.5rem}
 }
+
+/* language toggle injected by the shared i18n layer */
+.langbtn{
+  margin-inline-start:.25rem;
+  font-family:var(--sans);font-size:.76rem;font-weight:600;color:var(--text-2);
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:99px;
+  padding:.3rem .75rem;cursor:pointer;transition:color .2s,border-color .2s,background .2s;
+}
+.langbtn:hover{color:var(--text);border-color:var(--accent);background:var(--surface-2)}
+.langbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root[lang="ar"] body{font-family:"Cairo","Inter",system-ui,sans-serif}
+:root[lang="ar"] .hint,:root[lang="ar"] .head p,:root[lang="ar"] .note{font-family:"Cairo","Inter",system-ui,sans-serif}

@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><rect x='22' y='22' width='20' height='20' rx='5' fill='white'/><rect x='46' y='22' width='20' height='20' rx='5' fill='white'/><rect x='46' y='46' width='20' height='20' rx='5' fill='white'/><rect x='46' y='70' width='20' height='20' rx='5' fill='%23a78bfa'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <script>
   (function(){ var t = localStorage.getItem('theme');
     if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); })();
@@ -88,6 +88,7 @@ kbd{
 }
 
 .pad{
+  direction:ltr;
   inline-size:100%;max-inline-size:460px;
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
   gap:.5rem;margin-block-start:.25rem;
@@ -350,5 +351,77 @@ kbd{
 })();
 </script>
 
+<script>window.I18N_AR = {
+ "games": "الألعاب",
+ "New game": "لعبة جديدة",
+ "Play": "ابدأ",
+ "Play again": "العب تاني",
+ "Resume": "أكمل",
+ "Try again": "حاول تاني",
+ "Continue": "أكمل",
+ "Paused": "متوقفة",
+ "Game over": "انتهت اللعبة",
+ "New best": "أفضل نتيجة جديدة",
+ "Score": "النقاط",
+ "Best": "الأفضل",
+ "Time": "الوقت",
+ "Level": "المستوى",
+ "Lives": "المحاولات",
+ "Round": "الجولة",
+ "Moves": "الحركات",
+ "Pairs": "الأزواج",
+ "Easy": "سهل",
+ "Medium": "متوسط",
+ "Hard": "صعب",
+ "Expert": "خبير",
+ "move": "تحرّك",
+ "pause": "إيقاف",
+ "restart": "إعادة",
+ "rotate": "تدوير",
+ "soft drop": "نزول بطيء",
+ "hard drop": "إسقاط",
+ "undo": "تراجع",
+ "new game": "لعبة جديدة",
+ "or swipe": "أو اسحب",
+ "swipe": "اسحب",
+ "space": "مسافة",
+ "arrows": "الأسهم",
+ "re:^Score (\\d+) on level (\\d+)\\.$": "النقاط $1 في المستوى $2.",
+ "re:^Score (\\d+)\\. Take your time\\.$": "النقاط $1. خد وقتك.",
+ "re:^You scored (\\d+)\\. Best is (\\d+)\\.$": "سجّلت $1. أفضل نتيجة $2.",
+ "re:^You scored (\\d+)\\. Nothing has beaten that yet\\.$": "سجّلت $1. لسه محدش عدّاها.",
+ "Snake": "الثعبان",
+ "Arrow keys or WASD. On a phone, swipe or use the buttons below.": "أسهم الكيبورد أو WASD. على الموبايل اسحب أو استخدم الأزرار تحت.",
+ "← games": "→ الألعاب",
+ "← tools": "→ الأدوات",
+ "← eng-mohamed-elsayedahmed.github.io": "→ eng-mohamed-elsayedahmed.github.io",
+ "All tools →": "كل الأدوات ←",
+ "All games →": "كل الألعاب ←",
+ "View source →": "شوف الكود ←",
+ "Open the portfolio →": "افتح البورتفوليو ←",
+ "arrows / WASD": "الأسهم / WASD",
+ "best score": "أعلى نتيجة",
+ "click / tap": "ضغط / لمس",
+ "three sizes": "تلات مقاسات",
+ "fewest moves": "أقل حركات",
+ "click / right click": "ضغط / كليك يمين",
+ "long press to flag": "ضغطة مطوّلة للعلم",
+ "fastest time": "أسرع وقت",
+ "mouse / drag": "ماوس / سحب",
+ "levels": "مستويات",
+ "three strengths": "تلات مستويات",
+ "two players": "لاعبان",
+ "keys 1–7": "الأزرار ١–٧",
+ "keys 1–4": "الأزرار ١–٤",
+ "touch pad": "أزرار لمس",
+ "four levels": "أربع مستويات",
+ "pencil marks": "ملاحظات",
+ "unique solution": "حل وحيد",
+ "sound": "صوت",
+ "three speeds": "تلات سرعات",
+ "Looking for the utilities instead? They are at": "بتدور على الأدوات؟ هتلاقيها في",
+ "↑ ↓ ← → move · space pause · R restart": "الأسهم للحركة · مسافة للإيقاف · R لإعادة البدء"
+};</script>
+<script src="/assets/i18n.js"></script>
 </body>
 </html>
