@@ -18,9 +18,14 @@
     display:grid;gap:8px;padding:10px;aspect-ratio:1;
     background:var(--board);border:1px solid var(--line-solid);border-radius:14px;
   }
-  .card{perspective:700px;background:none;border:0;padding:0;cursor:pointer}
+  /* the card is the sized box; everything inside is absolute against it, so a
+     span never has to carry a height it cannot have */
+  .card{
+    position:relative;perspective:700px;background:none;border:0;padding:0;
+    cursor:pointer;min-inline-size:0;min-block-size:0;
+  }
   .inner{
-    position:relative;inline-size:100%;block-size:100%;
+    position:absolute;inset:0;display:block;
     transition:transform .38s var(--ease);transform-style:preserve-3d;
   }
   .card.up .inner,.card.done .inner{transform:rotateY(180deg)}
@@ -106,6 +111,7 @@
     overlay.hidden = true;
 
     field.style.gridTemplateColumns = 'repeat(' + N + ',1fr)';
+    field.style.gridTemplateRows = 'repeat(' + N + ',1fr)';
     field.innerHTML = '';
     deck.forEach(function (sym, i) {
       var b = document.createElement('button');
