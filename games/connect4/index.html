@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Connect Four — Mohamed Elsayed</title>
+<meta name="description" content="Connect Four against a computer that searches ahead with minimax and alpha-beta pruning. Three strengths, or play a second person on the same screen.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/connect4/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><circle cx='34' cy='38' r='12' fill='%23f472b6'/><circle cx='66' cy='38' r='12' fill='white'/><circle cx='34' cy='68' r='12' fill='white'/><circle cx='66' cy='68' r='12' fill='%23f472b6'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../games.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .board{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;
+    background:var(--board);border:1px solid var(--line-solid);border-radius:14px;
+    aspect-ratio:7/6;
+  }
+  .col{display:grid;grid-template-rows:repeat(6,1fr);gap:6px;cursor:pointer;border:0;background:none;padding:0;border-radius:8px}
+  .col:hover{background:color-mix(in srgb,var(--accent) 12%, transparent)}
+  .col:disabled{cursor:default;background:none}
+  .col:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .hole{border-radius:50%;background:var(--grid);transition:background .18s var(--ease),box-shadow .18s}
+  .hole.p1{background:var(--hot)}
+  .hole.p2{background:var(--accent-2)}
+  .hole.win{box-shadow:0 0 0 3px var(--ok) inset}
+  .turn{display:flex;align-items:center;gap:.55rem;font-size:.88rem;color:var(--text-2)}
+  .dot{inline-size:14px;block-size:14px;border-radius:50%;flex:none}
+  .dot.p1{background:var(--hot)}
+  .dot.p2{background:var(--accent-2)}
+</style>
+</head>
+<body>
+
+<div class="top wide">
+  <a class="back" href="/games/">&larr; games</a>
+  <h1>Connect Four</h1>
+</div>
+
+<div class="scores wide">
+  <div class="sc"><span>You</span><b id="w1">0</b></div>
+  <div class="sc"><span>Draws</span><b id="wd">0</b></div>
+  <div class="sc"><span id="oppLabel">Computer</span><b id="w2">0</b></div>
+</div>
+
+<div class="stage wide">
+  <div class="board" id="board"></div>
+  <div class="overlay" id="overlay" hidden>
+    <h2 id="ov-title"></h2>
+    <p id="ov-text"></p>
+    <button class="btn" id="ov-btn" type="button">Play again</button>
+  </div>
+</div>
+
+<div class="bar wide">
+  <select id="mode" aria-label="Opponent">
+    <option value="2">vs computer — easy</option>
+    <option value="4" selected>vs computer — normal</option>
+    <option value="6">vs computer — hard</option>
+    <option value="0">two players</option>
+  </select>
+  <button class="btn btn-s" id="restart" type="button">New game</button>
+  <span class="turn" id="turn" style="margin-inline-start:auto"><span class="dot p1"></span><span id="turnTxt">Your move</span></span>
+</div>
+
+<p class="hint">Drop a disc into any column. Four in a row, in any direction, wins.</p>
+
+<script>
+(function () {
+  var COLS = 7, ROWS = 6;
+  var boardEl = document.getElementById('board');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title'), ovText = document.getElementById('ov-text');
+  var modeSel = document.getElementById('mode'), turnTxt = document.getElementById('turnTxt');
+  var turnDot = document.querySelector('#turn .dot');
+  var w1 = document.getElementById('w1'), w2 = document.getElementById('w2'), wd = document.getElementById('wd');
+  var oppLabel = document.getElementById('oppLabel');
+
+  var grid, current, over, holes = [], wins = { 1: 0, 2: 0, d: 0 }, thinking = false;
+
+  function depth() { return parseInt(modeSel.value, 10); }
+  function vsAI() { return depth() > 0; }
+
+  function build() {
+    grid = [];
+    for (var c = 0; c < COLS; c++) grid.push(new Array(ROWS).fill(0));
+    current = 1; over = false; thinking = false;
+    overlay.hidden = true;
+    oppLabel.textContent = vsAI() ? 'Computer' : 'Player 2';
+
+    boardEl.innerHTML = '';
+    holes = [];
+    for (var col = 0; col < COLS; col++) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'col'; b.dataset.c = col;
+      b.setAttribute('aria-label', 'Drop in column ' + (col + 1));
+      var colHoles = [];
+      for (var r = 0; r < ROWS; r++) {
+        var h = document.createElement('span');
+        h.className = 'hole';
+        b.appendChild(h);
+        colHoles.push(h);
+      }
+      holes.push(colHoles);
+      boardEl.appendChild(b);
+    }
+    paint();
+  }
+
+  function paint(winCells) {
+    for (var c = 0; c < COLS; c++) {
+      for (var r = 0; r < ROWS; r++) {
+        var h = holes[c][ROWS - 1 - r];       // row 0 is the bottom
+        h.className = 'hole' + (grid[c][r] ? ' p' + grid[c][r] : '');
+      }
+    }
+    if (winCells) winCells.forEach(function (p) { holes[p[0]][ROWS - 1 - p[1]].classList.add('win'); });
+    turnDot.className = 'dot p' + current;
+    if (!over) {
+      turnTxt.textContent = current === 1 ? 'Your move'
+        : (vsAI() ? 'Computer thinking' : 'Player 2 move');
+    }
+  }
+
+  function height(g, c) {
+    var h = 0;
+    while (h < ROWS && g[c][h]) h++;
+    return h;
+  }
+  function canPlay(g, c) { return height(g, c) < ROWS; }
+
+  function winner(g) {
+    var dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    for (var c = 0; c < COLS; c++) {
+      for (var r = 0; r < ROWS; r++) {
+        var v = g[c][r];
+        if (!v) continue;
+        for (var d = 0; d < 4; d++) {
+          var dc = dirs[d][0], dr = dirs[d][1], cells = [[c, r]];
+          for (var k = 1; k < 4; k++) {
+            var nc = c + dc * k, nr = r + dr * k;
+            if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS || g[nc][nr] !== v) break;
+            cells.push([nc, nr]);
+          }
+          if (cells.length === 4) return { player: v, cells: cells };
+        }
+      }
+    }
+    return null;
+  }
+
+  function full(g) {
+    for (var c = 0; c < COLS; c++) if (canPlay(g, c)) return false;
+    return true;
+  }
+
+  // count how good a window of four is for the AI (player 2)
+  function scoreWindow(vals) {
+    var me = vals.filter(function (v) { return v === 2; }).length;
+    var you = vals.filter(function (v) { return v === 1; }).length;
+    var empty = vals.filter(function (v) { return v === 0; }).length;
+    if (me && you) return 0;
+    if (me === 3 && empty === 1) return 60;
+    if (me === 2 && empty === 2) return 12;
+    if (you === 3 && empty === 1) return -80;
+    if (you === 2 && empty === 2) return -14;
+    return 0;
+  }
+
+  function evaluate(g) {
+    var s = 0;
+    for (var r = 0; r < ROWS; r++) s += (g[3][r] === 2 ? 6 : g[3][r] === 1 ? -6 : 0);   // centre column
+    var dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    for (var c = 0; c < COLS; c++) {
+      for (var rr = 0; rr < ROWS; rr++) {
+        for (var d = 0; d < 4; d++) {
+          var dc = dirs[d][0], dr = dirs[d][1], vals = [], ok = true;
+          for (var k = 0; k < 4; k++) {
+            var nc = c + dc * k, nr = rr + dr * k;
+            if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) { ok = false; break; }
+            vals.push(g[nc][nr]);
+          }
+          if (ok) s += scoreWindow(vals);
+        }
+      }
+    }
+    return s;
+  }
+
+  var ORDER = [3, 2, 4, 1, 5, 0, 6];
+
+  function minimax(g, d, alpha, beta, maximizing) {
+    var w = winner(g);
+    if (w) return { score: w.player === 2 ? 100000 + d : -100000 - d };
+    if (full(g) || d === 0) return { score: evaluate(g) };
+
+    var bestCol = null;
+    if (maximizing) {
+      var best = -Infinity;
+      for (var i = 0; i < ORDER.length; i++) {
+        var c = ORDER[i];
+        if (!canPlay(g, c)) continue;
+        var h = height(g, c);
+        g[c][h] = 2;
+        var v = minimax(g, d - 1, alpha, beta, false).score;
+        g[c][h] = 0;
+        if (v > best) { best = v; bestCol = c; }
+        alpha = Math.max(alpha, v);
+        if (alpha >= beta) break;
+      }
+      return { score: best, col: bestCol };
+    }
+    var worst = Infinity;
+    for (var j = 0; j < ORDER.length; j++) {
+      var cc = ORDER[j];
+      if (!canPlay(g, cc)) continue;
+      var hh = height(g, cc);
+      g[cc][hh] = 1;
+      var vv = minimax(g, d - 1, alpha, beta, true).score;
+      g[cc][hh] = 0;
+      if (vv < worst) { worst = vv; bestCol = cc; }
+      beta = Math.min(beta, vv);
+      if (alpha >= beta) break;
+    }
+    return { score: worst, col: bestCol };
+  }
+
+  function finish(w) {
+    over = true;
+    if (w) {
+      wins[w.player]++;
+      (w.player === 1 ? w1 : w2).textContent = wins[w.player];
+      paint(w.cells);
+      ovTitle.textContent = w.player === 1 ? 'You win' : (vsAI() ? 'Computer wins' : 'Player 2 wins');
+      ovText.textContent = w.player === 1 && vsAI()
+        ? 'Try the next difficulty up.'
+        : 'Four in a row.';
+    } else {
+      wins.d++; wd.textContent = wins.d;
+      paint();
+      ovTitle.textContent = 'Draw';
+      ovText.textContent = 'The board filled with nobody connecting four.';
+    }
+    turnTxt.textContent = 'Game over';
+    overlay.hidden = false;
+  }
+
+  function drop(c) {
+    if (over || thinking || !canPlay(grid, c)) return;
+    grid[c][height(grid, c)] = current;
+    var w = winner(grid);
+    if (w) return finish(w);
+    if (full(grid)) return finish(null);
+
+    current = current === 1 ? 2 : 1;
+    paint();
+
+    if (vsAI() && current === 2) {
+      thinking = true;
+      setTimeout(function () {
+        var move = minimax(grid, depth(), -Infinity, Infinity, true);
+        var c2 = move.col;
+        if (c2 === null || c2 === undefined || !canPlay(grid, c2)) {
+          for (var i = 0; i < ORDER.length; i++) if (canPlay(grid, ORDER[i])) { c2 = ORDER[i]; break; }
+        }
+        grid[c2][height(grid, c2)] = 2;
+        thinking = false;
+        var w2r = winner(grid);
+        if (w2r) return finish(w2r);
+        if (full(grid)) return finish(null);
+        current = 1;
+        paint();
+      }, 180);
+    }
+  }
+
+  boardEl.addEventListener('click', function (e) {
+    var col = e.target.closest('.col');
+    if (col) drop(+col.dataset.c);
+  });
+  document.getElementById('ov-btn').addEventListener('click', build);
+  document.getElementById('restart').addEventListener('click', build);
+  modeSel.addEventListener('change', build);
+  document.addEventListener('keydown', function (e) {
+    if (e.key >= '1' && e.key <= '7') drop(+e.key - 1);
+    if (e.key === 'r' || e.key === 'R') build();
+  });
+
+  build();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Memory — Mohamed Elsayed</title>
+<meta name="description" content="Match every pair. Three sizes, moves and time tracked, best result kept for each size. One HTML file, no libraries.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/memory/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><rect x='20' y='26' width='26' height='34' rx='6' fill='white'/><rect x='54' y='40' width='26' height='34' rx='6' fill='%23a78bfa'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../games.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .field{
+    display:grid;gap:8px;padding:10px;aspect-ratio:1;
+    background:var(--board);border:1px solid var(--line-solid);border-radius:14px;
+  }
+  .card{perspective:700px;background:none;border:0;padding:0;cursor:pointer}
+  .inner{
+    position:relative;inline-size:100%;block-size:100%;
+    transition:transform .38s var(--ease);transform-style:preserve-3d;
+  }
+  .card.up .inner,.card.done .inner{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;display:grid;place-items:center;border-radius:9px;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  }
+  .front{background:var(--surface-2);border:1px solid var(--line)}
+  .front::after{content:"";inline-size:26%;block-size:26%;border-radius:50%;background:var(--accent);opacity:.28}
+  .back{
+    background:color-mix(in srgb,var(--accent) 20%, var(--surface));
+    border:1px solid color-mix(in srgb,var(--accent) 45%, transparent);
+    transform:rotateY(180deg);line-height:1;
+  }
+  .card.done .back{background:color-mix(in srgb,var(--ok) 22%, var(--surface));border-color:color-mix(in srgb,var(--ok) 50%, transparent)}
+  .card.done{cursor:default}
+  .card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:9px}
+</style>
+</head>
+<body>
+
+<div class="top wide">
+  <a class="back" href="/games/">&larr; games</a>
+  <h1>Memory</h1>
+</div>
+
+<div class="scores wide">
+  <div class="sc"><span>Moves</span><b id="moves">0</b></div>
+  <div class="sc"><span>Pairs</span><b id="pairs">0</b></div>
+  <div class="sc"><span>Time</span><b id="time">0</b></div>
+</div>
+
+<div class="stage wide">
+  <div class="field" id="field"></div>
+  <div class="overlay" id="overlay" hidden>
+    <h2 id="ov-title"></h2>
+    <p id="ov-text"></p>
+    <button class="btn" id="ov-btn" type="button">Play again</button>
+  </div>
+</div>
+
+<div class="bar wide">
+  <select id="level" aria-label="Size">
+    <option value="4">Easy — 4×4, 8 pairs</option>
+    <option value="6" selected>Medium — 6×6, 18 pairs</option>
+    <option value="8">Hard — 8×8, 32 pairs</option>
+  </select>
+  <button class="btn btn-s" id="restart" type="button">New game</button>
+</div>
+
+<p class="hint">Turn two cards. If they match they stay open. Fewest moves wins.</p>
+
+<script>
+(function () {
+  var SYMBOLS = ['★','●','▲','■','◆','✦','✚','❍','◐','☾','☀','⚑','♞','♪','⌘','✈','☂','✿','⚙','⌛','☯','✎','⚡','✂','☕','✉','♻','⚓','☘','✔','◈','✺'];
+  var field = document.getElementById('field');
+  var movesEl = document.getElementById('moves'), pairsEl = document.getElementById('pairs'), timeEl = document.getElementById('time');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title'), ovText = document.getElementById('ov-text');
+  var levelSel = document.getElementById('level');
+
+  var N, deck, open = [], moves, found, started, seconds, timer, locked;
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function build() {
+    N = parseInt(levelSel.value, 10);
+    var need = N * N / 2;
+    var picked = SYMBOLS.slice(0, need);
+    deck = shuffle(picked.concat(picked));
+
+    moves = 0; found = 0; open = []; started = false; seconds = 0; locked = false;
+    clearInterval(timer);
+    movesEl.textContent = '0';
+    pairsEl.textContent = '0/' + need;
+    timeEl.textContent = '0';
+    overlay.hidden = true;
+
+    field.style.gridTemplateColumns = 'repeat(' + N + ',1fr)';
+    field.innerHTML = '';
+    deck.forEach(function (sym, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'card';
+      b.dataset.i = i;
+      b.setAttribute('aria-label', 'Card ' + (i + 1));
+      b.innerHTML = '<span class="inner"><span class="face front"></span><span class="face back"></span></span>';
+      b.querySelector('.back').style.fontSize = Math.max(14, Math.round(240 / N)) + 'px';
+      b.querySelector('.back').textContent = sym;
+      field.appendChild(b);
+    });
+  }
+
+  function startClock() {
+    if (started) return;
+    started = true;
+    timer = setInterval(function () { seconds++; timeEl.textContent = seconds; }, 1000);
+  }
+
+  function flip(btn) {
+    if (locked) return;
+    if (btn.classList.contains('up') || btn.classList.contains('done')) return;
+    startClock();
+    btn.classList.add('up');
+    open.push(btn);
+    if (open.length < 2) return;
+
+    moves++;
+    movesEl.textContent = moves;
+    var a = open[0], b = open[1];
+
+    if (deck[a.dataset.i] === deck[b.dataset.i]) {
+      a.classList.add('done'); b.classList.add('done');
+      a.classList.remove('up'); b.classList.remove('up');
+      open = [];
+      found++;
+      pairsEl.textContent = found + '/' + (N * N / 2);
+      if (found === N * N / 2) win();
+    } else {
+      locked = true;
+      setTimeout(function () {
+        a.classList.remove('up'); b.classList.remove('up');
+        open = []; locked = false;
+      }, 650);
+    }
+  }
+
+  function win() {
+    clearInterval(timer);
+    var key = 'memBest' + N;
+    var prev = JSON.parse(localStorage.getItem(key) || 'null');
+    var better = !prev || moves < prev.moves;
+    if (better) localStorage.setItem(key, JSON.stringify({ moves: moves, seconds: seconds }));
+    ovTitle.textContent = 'All matched';
+    ovText.textContent = better
+      ? moves + ' moves in ' + seconds + ' seconds — your best at this size.'
+      : moves + ' moves in ' + seconds + ' seconds. Your best here is ' + prev.moves + ' moves.';
+    overlay.hidden = false;
+  }
+
+  field.addEventListener('click', function (e) {
+    var btn = e.target.closest('.card');
+    if (btn) flip(btn);
+  });
+  document.getElementById('ov-btn').addEventListener('click', build);
+  document.getElementById('restart').addEventListener('click', build);
+  levelSel.addEventListener('change', build);
+  document.addEventListener('keydown', function (e) { if (e.key === 'r' || e.key === 'R') build(); });
+
+  build();
+})();
+</script>
+</body>
+</html>

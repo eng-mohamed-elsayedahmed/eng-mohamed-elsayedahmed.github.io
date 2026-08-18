@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JWT decoder — Mohamed Elsayed</title>
+<meta name="description" content="Decode a JSON Web Token in the browser: header, payload, and the timestamp claims read as real dates. Nothing is sent anywhere.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/jwt/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M30 34h40M30 50h28M30 66h34' stroke='white' stroke-width='8' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  #token{min-block-size:110px;word-break:break-all;white-space:pre-wrap}
+  pre{
+    margin:0;font-family:var(--mono);font-size:.83rem;line-height:1.7;
+    background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;
+    padding:.75rem .85rem;overflow-x:auto;color:var(--text);
+  }
+  .claims{display:flex;flex-direction:column;gap:.4rem;margin-block-start:.8rem}
+  .claim{display:flex;gap:.75rem;align-items:baseline;font-size:.85rem;flex-wrap:wrap}
+  .claim code{font-family:var(--mono);color:var(--accent-2);flex:none;inline-size:3.2rem}
+  .claim span{color:var(--text-2)}
+  .seg{font-family:var(--mono);font-size:.78rem;word-break:break-all;line-height:1.8}
+  .s1{color:#f472b6}.s2{color:#a78bfa}.s3{color:#34d399}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>JWT decoder</h1>
+    <p>Paste a token to read its header and payload, with <code>exp</code>, <code>iat</code> and <code>nbf</code> shown as real dates. Decoding is not verifying — this page cannot tell you whether a signature is valid, only what the token claims.</p>
+  </header>
+
+  <div class="card">
+    <label for="token">Token</label>
+    <textarea id="token" spellcheck="false" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+    <div class="actions" style="margin-block-start:.7rem">
+      <button class="btn btn-s" id="sample" type="button">Load sample</button>
+      <button class="btn btn-s" id="clear" type="button">Clear</button>
+    </div>
+    <p class="err" id="err" style="margin:.7rem 0 0"></p>
+  </div>
+
+  <div id="result" hidden>
+    <div class="card" style="margin-block-end:1rem">
+      <label>Structure</label>
+      <p class="seg"><span class="s1" id="segH"></span><span style="color:var(--text-3)">.</span><span class="s2" id="segP"></span><span style="color:var(--text-3)">.</span><span class="s3" id="segS"></span></p>
+      <p class="note" style="margin:.5rem 0 0"><span class="s1">header</span> · <span class="s2">payload</span> · <span class="s3">signature</span></p>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <label>Header</label>
+        <pre id="header"></pre>
+      </div>
+      <div class="card">
+        <label>Payload</label>
+        <pre id="payload"></pre>
+      </div>
+    </div>
+
+    <div class="card" style="margin-block-start:1rem">
+      <label>Time claims</label>
+      <div class="claims" id="claims"></div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Decoding only. Signature verification needs the secret or public key.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var tokenEl = document.getElementById('token'), err = document.getElementById('err');
+  var result = document.getElementById('result');
+  var headerEl = document.getElementById('header'), payloadEl = document.getElementById('payload');
+  var claimsEl = document.getElementById('claims');
+  var segH = document.getElementById('segH'), segP = document.getElementById('segP'), segS = document.getElementById('segS');
+
+  var SAMPLE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Ik1vaGFtZWQgRWxzYXllZCIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAzNjAwfQ.7Xq3rF0mV2sB1kQe9nJfP4tLzYc8dWgH5aRmN6uKxTo';
+
+  function b64url(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  function fmt(unix) {
+    var d = new Date(unix * 1000);
+    return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  }
+
+  function relative(unix) {
+    var diff = unix * 1000 - Date.now();
+    var past = diff < 0;
+    var m = Math.abs(diff) / 60000;
+    var txt;
+    if (m < 1) txt = 'less than a minute';
+    else if (m < 60) txt = Math.round(m) + ' minutes';
+    else if (m < 1440) txt = Math.round(m / 60) + ' hours';
+    else txt = Math.round(m / 1440) + ' days';
+    return past ? txt + ' ago' : 'in ' + txt;
+  }
+
+  var LABEL = { exp: 'expires', iat: 'issued at', nbf: 'not before', auth_time: 'authenticated' };
+
+  function decode() {
+    err.textContent = '';
+    var raw = tokenEl.value.trim().replace(/^Bearer\s+/i, '');
+    if (!raw) { result.hidden = true; return; }
+
+    var parts = raw.split('.');
+    if (parts.length < 2) {
+      result.hidden = true;
+      err.textContent = 'A JWT has three parts separated by dots. This has ' + parts.length + '.';
+      return;
+    }
+
+    var head, body;
+    try {
+      head = JSON.parse(b64url(parts[0]));
+      body = JSON.parse(b64url(parts[1]));
+    } catch (e) {
+      result.hidden = true;
+      err.textContent = 'Could not decode that. The header or payload is not valid base64url JSON.';
+      return;
+    }
+
+    result.hidden = false;
+    headerEl.textContent = JSON.stringify(head, null, 2);
+    payloadEl.textContent = JSON.stringify(body, null, 2);
+    segH.textContent = parts[0];
+    segP.textContent = parts[1];
+    segS.textContent = parts[2] || '(none)';
+
+    claimsEl.innerHTML = '';
+    var found = 0;
+    ['iat', 'nbf', 'exp', 'auth_time'].forEach(function (k) {
+      if (typeof body[k] !== 'number') return;
+      found++;
+      var row = document.createElement('div');
+      row.className = 'claim';
+      var expired = k === 'exp' && body[k] * 1000 < Date.now();
+      var pending = k === 'nbf' && body[k] * 1000 > Date.now();
+      row.innerHTML = '<code>' + k + '</code><span>' + (LABEL[k] || k) + ' ' + fmt(body[k]) +
+        ' — ' + relative(body[k]) + '</span>';
+      if (expired) row.innerHTML += '<span class="pill fail">expired</span>';
+      else if (k === 'exp') row.innerHTML += '<span class="pill pass">still valid</span>';
+      else if (pending) row.innerHTML += '<span class="pill fail">not yet valid</span>';
+      claimsEl.appendChild(row);
+    });
+    if (!found) claimsEl.innerHTML = '<p class="note">This token carries no time claims.</p>';
+  }
+
+  tokenEl.addEventListener('input', decode);
+  document.getElementById('sample').addEventListener('click', function () { tokenEl.value = SAMPLE; decode(); });
+  document.getElementById('clear').addEventListener('click', function () { tokenEl.value = ''; decode(); });
+})();
+</script>
+</body>
+</html>

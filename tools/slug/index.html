@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slug generator — Mohamed Elsayed</title>
+<meta name="description" content="Turn a title into a URL slug, including Arabic. Transliterate to Latin letters or keep the Arabic and let the URL carry it.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/slug/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M42 58L58 42M36 48l-8 8a12 12 0 0017 17l8-8M64 52l8-8a12 12 0 00-17-17l-8 8' stroke='white' stroke-width='7' fill='none' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  #title{font-family:"Cairo",var(--sans);font-size:1rem;min-block-size:90px}
+  .out{
+    font-family:var(--mono);font-size:.9rem;color:var(--accent-2);
+    background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;
+    padding:.7rem .8rem;word-break:break-all;line-height:1.7;min-block-size:2.9rem;
+  }
+  .opts{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-block-start:.9rem}
+  .opt{display:inline-flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--text-2)}
+  .opt input{accent-color:var(--accent);inline-size:auto}
+  .url{font-family:var(--mono);font-size:.78rem;color:var(--text-3);margin-block-start:.5rem;word-break:break-all}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Slug generator</h1>
+    <p>Turn a page title into the part that goes in a URL. Arabic can either be transliterated into Latin letters or kept as it is — both are valid, and the choice changes how the link looks when someone pastes it.</p>
+  </header>
+
+  <div class="card">
+    <label for="title">Title</label>
+    <textarea id="title" dir="auto">مجموعة عرابي المحاسبية — خدمات الضرائب</textarea>
+
+    <div class="opts">
+      <label class="opt"><input type="radio" name="mode" value="tr" checked> Transliterate to Latin</label>
+      <label class="opt"><input type="radio" name="mode" value="ar"> Keep Arabic</label>
+      <label class="opt"><input type="checkbox" id="lower" checked> lowercase</label>
+      <label class="opt">separator
+        <select id="sep" style="inline-size:auto;padding:.3rem .6rem">
+          <option value="-">hyphen</option>
+          <option value="_">underscore</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Slug</label>
+    <div class="out" id="slug"></div>
+    <p class="url" id="url"></p>
+    <div class="actions" style="margin-block-start:.75rem">
+      <button class="btn btn-p" id="copy" type="button">Copy slug</button>
+      <button class="btn btn-s" id="copyUrl" type="button">Copy full URL</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Try these</label>
+    <div class="actions">
+      <button class="btn btn-s ex" type="button">القاهرة 2026: أفضل 10 مطاعم!</button>
+      <button class="btn btn-s ex" type="button">Angular 18 &amp; Flutter — What changed?</button>
+      <button class="btn btn-s ex" type="button">شركة عرابي — تأسيس شركات</button>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Arabic URLs work everywhere, but they get percent-encoded when copied.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var titleEl = document.getElementById('title'), slugEl = document.getElementById('slug'), urlEl = document.getElementById('url');
+  var lower = document.getElementById('lower'), sep = document.getElementById('sep');
+
+  // Arabic to Latin, the common newspaper style rather than strict academic
+  var MAP = {
+    'ا':'a','أ':'a','إ':'i','آ':'a','ٱ':'a','ب':'b','ت':'t','ث':'th','ج':'g','ح':'h','خ':'kh',
+    'د':'d','ذ':'th','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z',
+    'ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a',
+    'و':'w','ؤ':'o','ي':'y','ى':'a','ئ':'e','ء':'','لا':'la','پ':'p','چ':'ch','ڤ':'v','گ':'g',
+    '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'
+  };
+  var HARAKAT = /[ً-ٰٟـ]/g;   // tashkeel and tatweel
+
+  function mode() {
+    return document.querySelector('input[name=mode]:checked').value;
+  }
+
+  function translate(text) {
+    text = text.replace(HARAKAT, '');
+    var out = '';
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (MAP[ch] !== undefined) out += MAP[ch];
+      else out += ch;
+    }
+    return out;
+  }
+
+  function build() {
+    var s = titleEl.value.trim();
+    var d = sep.value;
+
+    if (mode() === 'tr') {
+      s = translate(s);
+      s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');   // strip Latin accents
+      s = s.replace(/[^A-Za-z0-9]+/g, d);
+    } else {
+      s = s.replace(HARAKAT, '');
+      s = s.replace(/[^ء-ي0-9A-Za-z]+/g, d);
+    }
+
+    s = s.replace(new RegExp('\\' + d + '{2,}', 'g'), d);
+    s = s.replace(new RegExp('^\\' + d + '+|\\' + d + '+$', 'g'), '');
+    if (lower.checked) s = s.toLowerCase();
+
+    slugEl.textContent = s || '—';
+    urlEl.textContent = s ? 'https://example.com/' + encodeURIComponent(s) : '';
+    return s;
+  }
+
+  function flash(btn, label) {
+    var old = btn.textContent;
+    btn.textContent = label;
+    setTimeout(function () { btn.textContent = old; }, 1200);
+  }
+
+  titleEl.addEventListener('input', build);
+  lower.addEventListener('change', build);
+  sep.addEventListener('change', build);
+  document.querySelectorAll('input[name=mode]').forEach(function (r) { r.addEventListener('change', build); });
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var s = build();
+    if (s) navigator.clipboard.writeText(s).then(flash.bind(null, this, 'Copied'));
+  });
+  document.getElementById('copyUrl').addEventListener('click', function () {
+    if (!urlEl.textContent) return;
+    navigator.clipboard.writeText(urlEl.textContent).then(flash.bind(null, this, 'Copied'));
+  });
+  document.querySelectorAll('.ex').forEach(function (b) {
+    b.addEventListener('click', function () { titleEl.value = b.textContent; build(); });
+  });
+
+  build();
+})();
+</script>
+</body>
+</html>

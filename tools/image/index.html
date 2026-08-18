@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image compressor — Mohamed Elsayed</title>
+<meta name="description" content="Resize and compress an image in the browser. Set a maximum width and a quality, see the saving before you download. The file never leaves your device.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/image/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><rect x='22' y='28' width='56' height='44' rx='7' fill='none' stroke='white' stroke-width='7'/><circle cx='38' cy='44' r='6' fill='white'/><path d='M26 66l16-14 12 10 8-6 12 10' stroke='white' stroke-width='6' fill='none' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .drop{
+    border:1.5px dashed var(--line-solid);border-radius:13px;padding:2.25rem 1rem;text-align:center;
+    background:var(--surface);cursor:pointer;transition:border-color .2s,background .2s;
+  }
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--surface-2)}
+  .drop p{margin:.3rem 0 0;font-size:.86rem;color:var(--text-3)}
+  .drop b{font-size:.98rem;font-weight:600}
+  input[type=range]{inline-size:100%;accent-color:var(--accent)}
+  .val{font-family:var(--mono);font-size:.8rem;color:var(--accent-2);float:inline-end}
+  .preview{
+    background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;
+    padding:.5rem;display:grid;place-items:center;min-block-size:150px;
+  }
+  .preview img{max-inline-size:100%;max-block-size:300px;border-radius:5px;display:block}
+  .stats{display:flex;gap:1.25rem;flex-wrap:wrap;margin-block-start:.75rem;font-family:var(--mono);font-size:.78rem}
+  .stats div span{color:var(--text-3);display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.1em}
+  .stats b{color:var(--text);font-weight:500}
+  .saved{color:var(--ok)}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Image compressor</h1>
+    <p>Drop in a photo, choose a maximum width and a quality, and see exactly how much smaller it gets before you download it. Everything happens on your device — the image is never uploaded.</p>
+  </header>
+
+  <div class="drop" id="drop" tabindex="0" role="button">
+    <b>Drop an image here</b>
+    <p>or click to choose one — JPEG, PNG or WebP</p>
+    <input type="file" id="file" accept="image/*" hidden>
+  </div>
+
+  <div id="work" hidden>
+    <div class="card" style="margin-block-end:1rem">
+      <label for="width">Maximum width <span class="val" id="wVal">1600 px</span></label>
+      <input type="range" id="width" min="200" max="3000" step="50" value="1600">
+      <label for="quality" style="margin-block-start:1rem">Quality <span class="val" id="qVal">82%</span></label>
+      <input type="range" id="quality" min="30" max="100" step="1" value="82">
+      <label for="format" style="margin-block-start:1rem">Format</label>
+      <select id="format" style="inline-size:auto">
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/webp">WebP — smaller, well supported</option>
+      </select>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <label>Original</label>
+        <div class="preview"><img id="imgA" alt="Original"></div>
+        <div class="stats">
+          <div><span>size</span><b id="sizeA">—</b></div>
+          <div><span>dimensions</span><b id="dimA">—</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <label>Compressed</label>
+        <div class="preview"><img id="imgB" alt="Compressed"></div>
+        <div class="stats">
+          <div><span>size</span><b id="sizeB">—</b></div>
+          <div><span>dimensions</span><b id="dimB">—</b></div>
+          <div><span>saved</span><b class="saved" id="saved">—</b></div>
+        </div>
+        <div class="actions" style="margin-block-start:.9rem">
+          <button class="btn btn-p" id="download" type="button">Download</button>
+          <button class="btn btn-s" id="reset" type="button">Choose another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Uses the canvas API. Nothing is uploaded and nothing is stored.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var drop = document.getElementById('drop'), file = document.getElementById('file');
+  var work = document.getElementById('work');
+  var width = document.getElementById('width'), quality = document.getElementById('quality'), format = document.getElementById('format');
+  var wVal = document.getElementById('wVal'), qVal = document.getElementById('qVal');
+  var imgA = document.getElementById('imgA'), imgB = document.getElementById('imgB');
+  var sizeA = document.getElementById('sizeA'), sizeB = document.getElementById('sizeB');
+  var dimA = document.getElementById('dimA'), dimB = document.getElementById('dimB'), savedEl = document.getElementById('saved');
+
+  var source = null, sourceSize = 0, sourceName = 'image', outBlob = null, outUrl = null;
+
+  function human(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  }
+
+  function load(f) {
+    if (!f || !/^image\//.test(f.type)) return;
+    sourceSize = f.size;
+    sourceName = f.name.replace(/\.[^.]+$/, '') || 'image';
+    var url = URL.createObjectURL(f);
+    var im = new Image();
+    im.onload = function () {
+      source = im;
+      imgA.src = url;
+      sizeA.textContent = human(sourceSize);
+      dimA.textContent = im.naturalWidth + ' × ' + im.naturalHeight;
+      width.max = Math.max(400, im.naturalWidth);
+      if (+width.value > im.naturalWidth) width.value = im.naturalWidth;
+      work.hidden = false;
+      render();
+    };
+    im.src = url;
+  }
+
+  function render() {
+    if (!source) return;
+    wVal.textContent = width.value + ' px';
+    qVal.textContent = quality.value + '%';
+
+    var maxW = Math.min(+width.value, source.naturalWidth);
+    var scale = maxW / source.naturalWidth;
+    var w = Math.round(source.naturalWidth * scale);
+    var h = Math.round(source.naturalHeight * scale);
+
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, w, h);
+
+    c.toBlob(function (blob) {
+      if (!blob) return;
+      if (outUrl) URL.revokeObjectURL(outUrl);
+      outBlob = blob;
+      outUrl = URL.createObjectURL(blob);
+      imgB.src = outUrl;
+      sizeB.textContent = human(blob.size);
+      dimB.textContent = w + ' × ' + h;
+      var pct = Math.round((1 - blob.size / sourceSize) * 100);
+      savedEl.textContent = pct > 0 ? pct + '%' : 'nothing yet';
+      savedEl.className = pct > 0 ? 'saved' : '';
+    }, format.value, +quality.value / 100);
+  }
+
+  drop.addEventListener('click', function () { file.click(); });
+  drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
+  file.addEventListener('change', function () { load(file.files[0]); });
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) load(e.dataTransfer.files[0]);
+  });
+
+  [width, quality].forEach(function (el) { el.addEventListener('input', render); });
+  format.addEventListener('change', render);
+
+  document.getElementById('download').addEventListener('click', function () {
+    if (!outBlob) return;
+    var ext = format.value === 'image/webp' ? 'webp' : 'jpg';
+    var a = document.createElement('a');
+    a.href = outUrl;
+    a.download = sourceName + '-compressed.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    source = null; work.hidden = true; file.value = '';
+  });
+})();
+</script>
+</body>
+</html>

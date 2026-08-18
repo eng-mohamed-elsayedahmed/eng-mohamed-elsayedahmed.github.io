@@ -112,6 +112,23 @@ h1{
 .role{margin:0;font-size:1.05rem;color:var(--text-2);max-inline-size:62ch}
 .role b{color:var(--text);font-weight:600}
 
+/* ---- primary calls to action ---- */
+.cta{display:flex;flex-wrap:wrap;gap:.55rem}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  font-size:.9rem;font-weight:600;text-decoration:none;
+  padding:.6rem 1.2rem;border-radius:99px;
+  background:var(--surface);color:var(--text-2);border:1px solid var(--line-solid);
+  transition:transform .18s var(--ease),background .2s,color .2s,border-color .2s,box-shadow .25s;
+}
+.cta-btn:hover{transform:translateY(-2px);color:var(--text);border-color:var(--accent)}
+.cta-btn.primary{
+  background:var(--accent);color:#fff;border-color:transparent;
+  box-shadow:0 10px 26px -14px var(--accent);
+}
+.cta-btn.primary:hover{background:var(--accent-2);color:#fff;box-shadow:0 16px 32px -16px var(--accent)}
+.cta-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
 /* ---- facts ---- */
 .facts{
   margin:0;padding:1.1rem 0;list-style:none;
