@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp link builder — Mohamed Elsayed</title>
+<meta name="description" content="Build a wa.me link with a message already written, for a number that never has to be saved in anyone contacts. Arabic messages supported.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/whatsapp/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M78 48a28 28 0 01-30 28 28 28 0 01-13-3l-13 4 5-13a28 28 0 0129-44 28 28 0 0122 28z' fill='none' stroke='white' stroke-width='7' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .out{
+    font-family:var(--mono);font-size:.85rem;color:var(--accent-2);
+    background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;
+    padding:.7rem .8rem;word-break:break-all;line-height:1.7;min-block-size:3rem;
+  }
+  #msg{font-family:"Cairo",var(--sans);font-size:.95rem;min-block-size:120px}
+  .bubble{
+    background:#075E54;color:#fff;border-radius:12px;padding:.75rem .9rem;
+    font-family:"Cairo",var(--sans);font-size:.92rem;line-height:1.7;
+    white-space:pre-wrap;word-break:break-word;max-inline-size:100%;
+  }
+  .phonewrap{display:flex;gap:.5rem}
+  .phonewrap select{inline-size:auto;flex:none}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>WhatsApp link builder</h1>
+    <p>Turn a phone number and a message into a <code>wa.me</code> link. Whoever clicks it opens a chat with the text already typed, and never has to save the number first. Useful on a landing page, a business card, or an email signature.</p>
+  </header>
+
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <label for="phone">Phone number</label>
+        <div class="phonewrap">
+          <select id="cc" aria-label="Country code">
+            <option value="20">🇪🇬 +20</option>
+            <option value="966">🇸🇦 +966</option>
+            <option value="971">🇦🇪 +971</option>
+            <option value="965">🇰🇼 +965</option>
+            <option value="974">🇶🇦 +974</option>
+            <option value="973">🇧🇭 +973</option>
+            <option value="968">🇴🇲 +968</option>
+            <option value="962">🇯🇴 +962</option>
+            <option value="">other</option>
+          </select>
+          <input type="tel" id="phone" value="1017483005" spellcheck="false" inputmode="numeric">
+        </div>
+        <p class="note" style="margin:.5rem 0 0">Leading zero is dropped automatically. 01017483005 becomes 201017483005.</p>
+      </div>
+      <div>
+        <label for="msg">Message</label>
+        <textarea id="msg" dir="auto">مساء الخير، حابب أستفسر عن الخدمات.</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Link</label>
+    <div class="out" id="link"></div>
+    <div class="actions" style="margin-block-start:.75rem">
+      <button class="btn btn-p" id="open" type="button">Open chat</button>
+      <button class="btn btn-s" id="copyLink" type="button">Copy link</button>
+      <button class="btn btn-s" id="copyHtml" type="button">Copy HTML button</button>
+    </div>
+    <p class="err" id="err" style="margin:.7rem 0 0"></p>
+  </div>
+
+  <div class="card">
+    <label>How the message arrives</label>
+    <div class="bubble" id="bubble" dir="auto"></div>
+  </div>
+
+  <div class="card">
+    <label>HTML snippet</label>
+    <div class="out" id="html"></div>
+  </div>
+
+  <footer class="foot">
+    <span>wa.me links are WhatsApp own format. Nothing is sent from this page.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var cc = document.getElementById('cc'), phone = document.getElementById('phone'), msg = document.getElementById('msg');
+  var linkEl = document.getElementById('link'), htmlEl = document.getElementById('html');
+  var bubble = document.getElementById('bubble'), err = document.getElementById('err');
+
+  function digits() {
+    var local = phone.value.replace(/\D/g, '').replace(/^0+/, '');
+    var code = cc.value;
+    return code ? code + local : local;
+  }
+
+  function build() {
+    var num = digits();
+    var text = msg.value;
+    err.textContent = '';
+
+    if (num.length < 8) {
+      err.textContent = 'That number looks too short. Include the country code if you picked "other".';
+      linkEl.textContent = '—';
+      htmlEl.textContent = '—';
+      bubble.textContent = text;
+      return '';
+    }
+
+    var url = 'https://wa.me/' + num + (text ? '?text=' + encodeURIComponent(text) : '');
+    linkEl.textContent = url;
+    bubble.textContent = text || '(no message — the chat just opens empty)';
+    htmlEl.textContent = '<a href="' + url.replace(/&/g, '&amp;') + '" target="_blank" rel="noopener">Message us on WhatsApp</a>';
+    return url;
+  }
+
+  function flash(btn, label) {
+    var old = btn.textContent;
+    btn.textContent = label;
+    setTimeout(function () { btn.textContent = old; }, 1200);
+  }
+
+  [cc, phone, msg].forEach(function (el) { el.addEventListener('input', build); });
+  cc.addEventListener('change', build);
+
+  document.getElementById('open').addEventListener('click', function () {
+    var url = build();
+    if (url) window.open(url, '_blank', 'noopener');
+  });
+  document.getElementById('copyLink').addEventListener('click', function () {
+    var url = build();
+    if (url) navigator.clipboard.writeText(url).then(function () { flash(this, 'Copied'); }.bind(this));
+  });
+  document.getElementById('copyHtml').addEventListener('click', function () {
+    if (!htmlEl.textContent || htmlEl.textContent === '—') return;
+    navigator.clipboard.writeText(htmlEl.textContent).then(function () { flash(this, 'Copied'); }.bind(this));
+  });
+
+  build();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools — Mohamed Elsayed</title>
+<meta name="description" content="Small single-file tools that run entirely in the browser: a WCAG contrast checker, a JSON and CSV converter, and a WhatsApp link builder.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><rect x='24' y='26' width='52' height='9' rx='4.5' fill='white'/><rect x='24' y='46' width='36' height='9' rx='4.5' fill='white'/><rect x='24' y='66' width='44' height='9' rx='4.5' fill='%23a78bfa'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .list{display:flex;flex-direction:column;gap:.75rem}
+  .tool{
+    display:block;text-decoration:none;color:inherit;
+    background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:1.15rem 1.2rem;
+    transition:border-color .2s var(--ease),background .2s var(--ease),transform .2s var(--ease);
+  }
+  .tool:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line-solid));background:var(--surface-2);transform:translateX(3px)}
+  .tool:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .tool code{font-family:var(--mono);font-size:.74rem;color:var(--accent-2);display:block;margin-block-end:.3rem}
+  .tool h2{margin:0 0 .3rem;font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+  .tool p{margin:0;font-size:.9rem;color:var(--text-2)}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/">&larr; eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Tools</h1>
+    <p>Each one is a single HTML file with no dependencies and no build step. They run entirely in your browser — nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="list">
+
+    <a class="tool" href="/tools/contrast/">
+      <code>/tools/contrast/</code>
+      <h2>Contrast checker</h2>
+      <p>Check a text and background pair against WCAG AA and AAA, and get the nearest shade that passes when it fails.</p>
+    </a>
+
+    <a class="tool" href="/tools/json-csv/">
+      <code>/tools/json-csv/</code>
+      <h2>JSON ↔ CSV</h2>
+      <p>Convert an array of objects to CSV and back. Quotes, commas and line breaks inside values are handled correctly.</p>
+    </a>
+
+    <a class="tool" href="/tools/whatsapp/">
+      <code>/tools/whatsapp/</code>
+      <h2>WhatsApp link builder</h2>
+      <p>Build a wa.me link with the message already written, plus the HTML snippet to drop into a page. Arabic supported.</p>
+    </a>
+
+    <a class="tool" href="/snake/">
+      <code>/snake/</code>
+      <h2>Snake</h2>
+      <p>A small game. Arrow keys on desktop, swipe on touch, best score kept locally.</p>
+    </a>
+
+  </div>
+
+  <footer class="foot">
+    <span>Source lives in the same repository as this page.</span>
+    <a href="https://github.com/eng-mohamed-elsayedahmed/eng-mohamed-elsayedahmed.github.io" target="_blank" rel="noopener">View source &rarr;</a>
+  </footer>
+
+</main>
+</body>
+</html>

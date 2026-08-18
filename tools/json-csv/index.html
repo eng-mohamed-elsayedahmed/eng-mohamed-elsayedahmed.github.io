@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON ↔ CSV — Mohamed Elsayed</title>
+<meta name="description" content="Convert an array of JSON objects to CSV and back. Handles quotes, commas and newlines inside values. Runs entirely in the browser.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/json-csv/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M38 28 24 50l14 22M62 28l14 22-14 22' stroke='white' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .io{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media (max-width:720px){.io{grid-template-columns:1fr}}
+  .io textarea{min-block-size:260px;white-space:pre;overflow-wrap:normal;overflow-x:auto}
+  .swap{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .dirlabel{font-family:var(--mono);font-size:.8rem;color:var(--accent-2)}
+  .stat{font-family:var(--mono);font-size:.74rem;color:var(--text-3)}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>JSON ↔ CSV</h1>
+    <p>Paste an array of objects and get a CSV, or paste a CSV and get JSON back. Quotes, commas and line breaks inside values are handled properly. Nothing leaves your browser.</p>
+  </header>
+
+  <div class="card">
+    <div class="swap">
+      <button class="btn btn-p" id="convert" type="button">Convert</button>
+      <button class="btn btn-s" id="flip" type="button">Swap direction</button>
+      <span class="dirlabel" id="dir">JSON → CSV</span>
+      <span class="stat" id="stat" style="margin-inline-start:auto"></span>
+    </div>
+  </div>
+
+  <div class="io">
+    <div class="card">
+      <label for="input" id="inLabel">Input — JSON</label>
+      <textarea id="input" spellcheck="false"></textarea>
+      <div class="actions" style="margin-block-start:.7rem">
+        <button class="btn btn-s" id="sample" type="button">Load sample</button>
+        <button class="btn btn-s" id="clear" type="button">Clear</button>
+      </div>
+      <p class="err" id="err" style="margin:.7rem 0 0"></p>
+    </div>
+
+    <div class="card">
+      <label for="output" id="outLabel">Output — CSV</label>
+      <textarea id="output" spellcheck="false" readonly></textarea>
+      <div class="actions" style="margin-block-start:.7rem">
+        <button class="btn btn-s" id="copy" type="button">Copy</button>
+        <button class="btn btn-s" id="download" type="button">Download</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Runs offline. No upload, no server, no analytics.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var input = document.getElementById('input'), output = document.getElementById('output');
+  var err = document.getElementById('err'), stat = document.getElementById('stat');
+  var dirEl = document.getElementById('dir'), inLabel = document.getElementById('inLabel'), outLabel = document.getElementById('outLabel');
+  var toCsv = true;
+
+  var SAMPLE_JSON = JSON.stringify([
+    { id: 1, name: 'Bonyan ERP', client: 'It Plus', stack: 'Angular, PHP' },
+    { id: 2, name: 'QMS Ataa', client: 'Ataa', stack: 'Flutter, Dart' },
+    { id: 3, name: 'Notes', client: 'Demo', stack: 'value with a comma, and "quotes"' }
+  ], null, 2);
+
+  var SAMPLE_CSV = 'id,name,client,stack\n1,Bonyan ERP,It Plus,"Angular, PHP"\n2,QMS Ataa,Ataa,"Flutter, Dart"';
+
+  function esc(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') v = JSON.stringify(v);
+    v = String(v);
+    return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+
+  function jsonToCsv(text) {
+    var data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error('Expected an array of objects at the top level.');
+    if (!data.length) return '';
+    var cols = [];
+    data.forEach(function (row) {
+      if (row === null || typeof row !== 'object' || Array.isArray(row)) {
+        throw new Error('Every item in the array must be an object.');
+      }
+      Object.keys(row).forEach(function (k) { if (cols.indexOf(k) === -1) cols.push(k); });
+    });
+    var lines = [cols.map(esc).join(',')];
+    data.forEach(function (row) {
+      lines.push(cols.map(function (c) { return esc(row[c]); }).join(','));
+    });
+    return lines.join('\n');
+  }
+
+  function parseCsv(text) {
+    var rows = [], row = [], field = '', quoted = false, i = 0;
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    while (i < text.length) {
+      var c = text[i];
+      if (quoted) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          quoted = false; i++; continue;
+        }
+        field += c; i++; continue;
+      }
+      if (c === '"') { quoted = true; i++; continue; }
+      if (c === ',') { row.push(field); field = ''; i++; continue; }
+      if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      field += c; i++;
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(function (r) { return r.length > 1 || (r[0] || '').trim() !== ''; });
+  }
+
+  function csvToJson(text) {
+    var rows = parseCsv(text);
+    if (!rows.length) throw new Error('Nothing to read.');
+    var head = rows[0];
+    var out = rows.slice(1).map(function (r) {
+      var o = {};
+      head.forEach(function (h, idx) {
+        var v = r[idx] === undefined ? '' : r[idx];
+        if (v !== '' && !isNaN(v) && String(Number(v)) === v.trim()) v = Number(v);
+        else if (v === 'true') v = true;
+        else if (v === 'false') v = false;
+        o[h] = v;
+      });
+      return o;
+    });
+    return JSON.stringify(out, null, 2);
+  }
+
+  function setDirection() {
+    dirEl.textContent = toCsv ? 'JSON → CSV' : 'CSV → JSON';
+    inLabel.textContent = 'Input — ' + (toCsv ? 'JSON' : 'CSV');
+    outLabel.textContent = 'Output — ' + (toCsv ? 'CSV' : 'JSON');
+  }
+
+  function convert() {
+    err.textContent = '';
+    stat.textContent = '';
+    var text = input.value.trim();
+    if (!text) { output.value = ''; return; }
+    try {
+      output.value = toCsv ? jsonToCsv(text) : csvToJson(text);
+      var lines = output.value ? output.value.split('\n').length : 0;
+      stat.textContent = lines + ' lines · ' + output.value.length + ' chars';
+    } catch (e) {
+      output.value = '';
+      err.textContent = e.message;
+    }
+  }
+
+  document.getElementById('convert').addEventListener('click', convert);
+  document.getElementById('flip').addEventListener('click', function () {
+    toCsv = !toCsv;
+    var carry = output.value;
+    setDirection();
+    if (carry) { input.value = carry; convert(); }
+    else { output.value = ''; err.textContent = ''; stat.textContent = ''; }
+  });
+  document.getElementById('sample').addEventListener('click', function () {
+    input.value = toCsv ? SAMPLE_JSON : SAMPLE_CSV;
+    convert();
+  });
+  document.getElementById('clear').addEventListener('click', function () {
+    input.value = ''; output.value = ''; err.textContent = ''; stat.textContent = '';
+  });
+  document.getElementById('copy').addEventListener('click', function () {
+    if (!output.value) return;
+    navigator.clipboard.writeText(output.value).then(function () {
+      var b = document.getElementById('copy');
+      b.textContent = 'Copied';
+      setTimeout(function () { b.textContent = 'Copy'; }, 1200);
+    });
+  });
+  document.getElementById('download').addEventListener('click', function () {
+    if (!output.value) return;
+    var name = toCsv ? 'data.csv' : 'data.json';
+    var type = toCsv ? 'text/csv' : 'application/json';
+    var url = URL.createObjectURL(new Blob([output.value], { type: type + ';charset=utf-8' }));
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+
+  input.addEventListener('input', function () { if (input.value.length < 20000) convert(); });
+
+  setDirection();
+})();
+</script>
+</body>
+</html>

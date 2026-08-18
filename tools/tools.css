@@ -1,0 +1,89 @@
+/* Shared shell for the tools. Same palette and faces as the front door. */
+
+:root{
+  --bg:#0a0a0f; --surface:#12121b; --surface-2:#171724;
+  --line:#23233460; --line-solid:#242436;
+  --text:#f0f0f5; --text-2:#9a9ab0; --text-3:#6c6c85;
+  --accent:#6366f1; --accent-2:#a78bfa;
+  --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f8f9fc; --surface:#ffffff; --surface-2:#f2f3f9;
+    --line:#e5e7f1; --line-solid:#dfe1ee;
+    --text:#14141f; --text-2:#55556b; --text-3:#8a8aa0;
+    --accent-2:#7c5cf0; --ok:#059669; --warn:#b45309; --bad:#dc2626;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f8f9fc; --surface:#ffffff; --surface-2:#f2f3f9;
+  --line:#e5e7f1; --line-solid:#dfe1ee;
+  --text:#14141f; --text-2:#55556b; --text-3:#8a8aa0;
+  --accent-2:#7c5cf0; --ok:#059669; --warn:#b45309; --bad:#dc2626;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;min-block-size:100vh;background:var(--bg);color:var(--text);
+  font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;
+}
+.page{max-inline-size:820px;margin-inline:auto;padding:clamp(1.5rem,4vh,2.5rem) clamp(1.15rem,5vw,2rem) 3rem;display:flex;flex-direction:column;gap:1.5rem}
+
+.top{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.back{font-family:var(--mono);font-size:.76rem;color:var(--text-3);text-decoration:none}
+.back:hover{color:var(--accent-2)}
+.head h1{margin:0;font-size:clamp(1.5rem,4vw,2rem);font-weight:800;letter-spacing:-.03em}
+.head p{margin:.35rem 0 0;color:var(--text-2);font-size:.95rem;max-inline-size:62ch}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:1.15rem 1.2rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+
+label{display:block;font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.11em;color:var(--text-3);margin-block-end:.4rem}
+input[type=text],input[type=tel],textarea,select{
+  inline-size:100%;background:var(--surface-2);color:var(--text);
+  border:1px solid var(--line-solid);border-radius:9px;
+  padding:.6rem .75rem;font-family:var(--mono);font-size:.88rem;line-height:1.6;
+}
+textarea{resize:vertical;min-block-size:170px}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+input[type=color]{
+  inline-size:44px;block-size:38px;padding:2px;background:var(--surface-2);
+  border:1px solid var(--line-solid);border-radius:9px;cursor:pointer;
+}
+.row{display:flex;gap:.5rem;align-items:center}
+.row input[type=text]{flex:1}
+
+.btn{
+  font-family:var(--sans);font-size:.88rem;font-weight:600;cursor:pointer;
+  border:1px solid transparent;border-radius:99px;padding:.55rem 1.15rem;
+  transition:transform .18s var(--ease),background .2s,color .2s,border-color .2s;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:focus-visible{outline:2px solid var(--accent-2);outline-offset:3px}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover{background:var(--accent-2)}
+.btn-s{background:transparent;color:var(--text-2);border-color:var(--line-solid)}
+.btn-s:hover{color:var(--text);border-color:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+
+.note{font-size:.82rem;color:var(--text-3)}
+.err{color:var(--bad);font-size:.85rem;font-family:var(--mono);white-space:pre-wrap;word-break:break-word}
+.ok{color:var(--ok)}
+
+.pill{
+  display:inline-flex;align-items:center;gap:.35rem;
+  font-family:var(--mono);font-size:.7rem;font-weight:500;
+  padding:.2rem .6rem;border-radius:99px;border:1px solid currentColor;
+}
+.pill.pass{color:var(--ok)}
+.pill.fail{color:var(--bad)}
+
+.foot{margin-block-start:.5rem;padding-block-start:1.25rem;border-block-start:1px solid var(--line);font-size:.8rem;color:var(--text-3);display:flex;flex-wrap:wrap;gap:.5rem 1rem;justify-content:space-between}
+.foot a{color:var(--text-2);text-decoration:none}
+.foot a:hover{color:var(--accent-2)}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition-duration:.001ms !important}}

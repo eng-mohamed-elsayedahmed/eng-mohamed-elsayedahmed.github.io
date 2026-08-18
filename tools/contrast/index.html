@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrast checker — Mohamed Elsayed</title>
+<meta name="description" content="Check a text and background colour pair against WCAG AA and AAA, and get the nearest passing shade. One file, no libraries.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/contrast/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M50 18a32 32 0 000 64z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .preview{border-radius:11px;padding:1.5rem 1.35rem;border:1px solid var(--line-solid);display:flex;flex-direction:column;gap:.6rem}
+  .preview .big{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;line-height:1.3}
+  .preview .small{font-size:.95rem}
+  .ratio{font-family:var(--mono);font-size:clamp(2.2rem,7vw,3.2rem);font-weight:500;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .checks{display:grid;grid-template-columns:1fr auto;gap:.5rem 1rem;align-items:center;margin-block-start:1rem}
+  .checks span{font-size:.85rem;color:var(--text-2)}
+  .swatch{inline-size:22px;block-size:22px;border-radius:6px;border:1px solid var(--line-solid);flex:none}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Contrast checker</h1>
+    <p>Enter a text colour and a background colour. The ratio updates as you type, and if the pair fails WCAG AA the tool finds the nearest shade that passes.</p>
+  </header>
+
+  <div class="grid2">
+    <div class="card">
+      <label for="fgHex">Text colour</label>
+      <div class="row">
+        <input type="color" id="fg" value="#6c6c85" aria-label="Pick text colour">
+        <input type="text" id="fgHex" value="#6C6C85" spellcheck="false">
+      </div>
+    </div>
+    <div class="card">
+      <label for="bgHex">Background colour</label>
+      <div class="row">
+        <input type="color" id="bg" value="#12121b" aria-label="Pick background colour">
+        <input type="text" id="bgHex" value="#12121B" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="preview" id="preview">
+      <span class="big">Large text, 24px and bold</span>
+      <span class="small">Body text at a normal weight, the size most of a page is actually set in.</span>
+    </div>
+
+    <div class="checks">
+      <div>
+        <div class="ratio" id="ratio">—</div>
+        <span id="verdict">contrast ratio</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+        <span class="pill" id="aa">AA normal</span>
+        <span class="pill" id="aaa">AAA normal</span>
+        <span class="pill" id="aaL">AA large</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="fixCard" hidden>
+    <label>Nearest passing text colour</label>
+    <div class="row" style="gap:.75rem">
+      <span class="swatch" id="fixSwatch"></span>
+      <code id="fixHex" style="font-family:var(--mono);font-size:.95rem;color:var(--accent-2)"></code>
+      <button class="btn btn-s" id="applyFix" type="button">Use it</button>
+    </div>
+    <p class="note" id="fixNote" style="margin:.6rem 0 0"></p>
+  </div>
+
+  <footer class="foot">
+    <span>Ratios follow the WCAG 2.1 relative luminance formula.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var fg = document.getElementById('fg'), bg = document.getElementById('bg');
+  var fgHex = document.getElementById('fgHex'), bgHex = document.getElementById('bgHex');
+  var preview = document.getElementById('preview');
+  var ratioEl = document.getElementById('ratio'), verdict = document.getElementById('verdict');
+  var aa = document.getElementById('aa'), aaa = document.getElementById('aaa'), aaL = document.getElementById('aaL');
+  var fixCard = document.getElementById('fixCard'), fixSwatch = document.getElementById('fixSwatch');
+  var fixHex = document.getElementById('fixHex'), fixNote = document.getElementById('fixNote');
+  var applyFix = document.getElementById('applyFix');
+
+  function parse(hex) {
+    hex = String(hex).trim().replace(/^#/, '');
+    if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+    return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+  }
+  function toHex(rgb) {
+    return '#' + rgb.map(function (v) {
+      return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+    }).join('').toUpperCase();
+  }
+  function luminance(rgb) {
+    var a = rgb.map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  function contrast(a, b) {
+    var la = luminance(a), lb = luminance(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+  function mark(el, pass, label) {
+    el.textContent = (pass ? '✓ ' : '✕ ') + label;
+    el.className = 'pill ' + (pass ? 'pass' : 'fail');
+  }
+
+  // walk the text colour toward black or white until it clears AA
+  function nearestPassing(text, back, target) {
+    var toward = luminance(back) > 0.18 ? [0, 0, 0] : [255, 255, 255];
+    var best = null;
+    for (var t = 0.02; t <= 1.0001; t += 0.02) {
+      var c = [
+        text[0] + (toward[0] - text[0]) * t,
+        text[1] + (toward[1] - text[1]) * t,
+        text[2] + (toward[2] - text[2]) * t
+      ];
+      if (contrast(c, back) >= target) { best = c.map(Math.round); break; }
+    }
+    return best;
+  }
+
+  function render() {
+    var f = parse(fgHex.value), b = parse(bgHex.value);
+    if (!f || !b) { verdict.textContent = 'enter a valid hex colour'; return; }
+
+    preview.style.color = toHex(f);
+    preview.style.background = toHex(b);
+
+    var r = contrast(f, b);
+    ratioEl.textContent = r.toFixed(2) + ':1';
+    mark(aa, r >= 4.5, 'AA normal');
+    mark(aaa, r >= 7, 'AAA normal');
+    mark(aaL, r >= 3, 'AA large');
+
+    if (r >= 7) verdict.textContent = 'passes everything';
+    else if (r >= 4.5) verdict.textContent = 'fine for body text';
+    else if (r >= 3) verdict.textContent = 'large text only';
+    else verdict.textContent = 'too low to use';
+
+    if (r < 4.5) {
+      var fix = nearestPassing(f, b, 4.5);
+      if (fix) {
+        fixCard.hidden = false;
+        fixSwatch.style.background = toHex(fix);
+        fixHex.textContent = toHex(fix);
+        fixNote.textContent = 'Keeps the same hue direction and reaches ' + contrast(fix, b).toFixed(2) + ':1.';
+        applyFix.onclick = function () { setFg(toHex(fix)); };
+      } else {
+        fixCard.hidden = true;
+      }
+    } else {
+      fixCard.hidden = true;
+    }
+  }
+
+  function setFg(hex) { fgHex.value = hex; fg.value = hex.toLowerCase(); render(); }
+
+  fg.addEventListener('input', function () { fgHex.value = fg.value.toUpperCase(); render(); });
+  bg.addEventListener('input', function () { bgHex.value = bg.value.toUpperCase(); render(); });
+  fgHex.addEventListener('input', function () { var p = parse(fgHex.value); if (p) fg.value = toHex(p).toLowerCase(); render(); });
+  bgHex.addEventListener('input', function () { var p = parse(bgHex.value); if (p) bg.value = toHex(p).toLowerCase(); render(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
