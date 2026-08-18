@@ -41,7 +41,7 @@ body{
 .top{display:flex;align-items:center;gap:1rem}
 .back{font-family:var(--mono);font-size:.76rem;color:var(--text-3);text-decoration:none}
 .back:hover{color:var(--accent-2)}
-.top h1{margin:0 0 0 auto;font-size:1rem;font-weight:600;letter-spacing:-.01em}
+.top h1{font-size:1rem;font-weight:600;letter-spacing:-.01em}
 
 .scores{display:flex;gap:.6rem}
 .sc{
@@ -121,7 +121,7 @@ kbd{
 
 /* language toggle injected by the shared i18n layer */
 .langbtn{
-  margin-inline-start:.25rem;
+  margin-inline-start:auto;
   font-family:var(--sans);font-size:.76rem;font-weight:600;color:var(--text-2);
   background:var(--surface);border:1px solid var(--line-solid);border-radius:99px;
   padding:.3rem .75rem;cursor:pointer;transition:color .2s,border-color .2s,background .2s;
@@ -130,3 +130,12 @@ kbd{
 .langbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 :root[lang="ar"] body{font-family:"Cairo","Inter",system-ui,sans-serif}
 :root[lang="ar"] .hint,:root[lang="ar"] .head p,:root[lang="ar"] .note{font-family:"Cairo","Inter",system-ui,sans-serif}
+
+/* one row shape in both directions: back link at the start, title filling the
+   middle, language toggle always last */
+.top h1{flex:1;text-align:end;margin:0}
+.langbtn{margin-inline-start:auto;flex:none}
+.top h1 + .langbtn{margin-inline-start:.6rem}
+/* the back arrow is a pseudo element so the cascade places it on the correct
+   side instead of bidi guessing where a character in the string belongs */
+:root[lang="ar"] .back::before{content:"→ "}
