@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sudoku — Mohamed Elsayed</title>
+<meta name="description" content="Sudoku with puzzles generated in the browser and checked for a single solution. Four difficulties, pencil marks, and a hint when you are stuck.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/sudoku/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M22 44h56M22 62h56M40 22v56M60 22v56' stroke='white' stroke-width='6'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../games.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .field{
+    display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);
+    gap:1px;padding:5px;aspect-ratio:1;background:var(--line-solid);
+    border:2px solid var(--line-solid);border-radius:12px;overflow:hidden;
+  }
+  .cell{
+    display:grid;place-items:center;cursor:pointer;padding:0;border:0;
+    background:var(--surface);min-inline-size:0;min-block-size:0;
+    font-family:var(--mono);font-weight:500;line-height:1;color:var(--accent-2);
+    transition:background .12s;position:relative;
+  }
+  .cell.given{color:var(--text);font-weight:700;cursor:default}
+  .cell.sel{background:color-mix(in srgb,var(--accent) 26%, var(--surface))}
+  .cell.peer{background:color-mix(in srgb,var(--accent) 9%, var(--surface))}
+  .cell.same{background:color-mix(in srgb,var(--accent) 18%, var(--surface))}
+  .cell.bad{color:var(--bad)}
+  .cell:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  /* the 3x3 boxes get a heavier rule */
+  .cell[data-c="2"],.cell[data-c="5"]{box-shadow:inset -2px 0 0 var(--line-solid)}
+  .cell[data-r="2"],.cell[data-r="5"]{box-shadow:inset 0 -2px 0 var(--line-solid)}
+  .cell[data-c="2"][data-r="2"],.cell[data-c="2"][data-r="5"],
+  .cell[data-c="5"][data-r="2"],.cell[data-c="5"][data-r="5"]{box-shadow:inset -2px 0 0 var(--line-solid),inset 0 -2px 0 var(--line-solid)}
+  .notes{
+    position:absolute;inset:8%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    font-size:.5em;color:var(--text-3);pointer-events:none;
+  }
+  .notes span{display:grid;place-items:center}
+  .keys{display:grid;grid-template-columns:repeat(5,1fr);gap:.45rem;margin-block-start:.25rem}
+  .keys button{
+    font-family:var(--mono);font-size:1.05rem;font-weight:600;color:var(--text-2);
+    background:var(--surface);border:1px solid var(--line-solid);border-radius:10px;
+    padding:.65rem 0;cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+  }
+  .keys button:hover{background:var(--surface-2);color:var(--accent-2);border-color:var(--accent)}
+  .keys button.on{background:var(--accent);color:#fff;border-color:transparent}
+</style>
+</head>
+<body>
+
+<div class="top wide">
+  <a class="back" href="/games/">&larr; games</a>
+  <h1>Sudoku</h1>
+</div>
+
+<div class="scores wide">
+  <div class="sc"><span>Empty</span><b id="left">0</b></div>
+  <div class="sc"><span>Mistakes</span><b id="bad">0</b></div>
+  <div class="sc"><span>Time</span><b id="time">0</b></div>
+</div>
+
+<div class="stage wide">
+  <div class="field" id="field"></div>
+  <div class="overlay" id="overlay" hidden>
+    <h2 id="ov-title"></h2>
+    <p id="ov-text"></p>
+    <button class="btn" id="ov-btn" type="button">New puzzle</button>
+  </div>
+</div>
+
+<div class="keys wide" id="keys">
+  <button type="button" data-n="1">1</button><button type="button" data-n="2">2</button>
+  <button type="button" data-n="3">3</button><button type="button" data-n="4">4</button>
+  <button type="button" data-n="5">5</button><button type="button" data-n="6">6</button>
+  <button type="button" data-n="7">7</button><button type="button" data-n="8">8</button>
+  <button type="button" data-n="9">9</button><button type="button" data-n="0">⌫</button>
+</div>
+
+<div class="bar wide">
+  <select id="level" aria-label="Difficulty">
+    <option value="40">Easy</option>
+    <option value="32" selected>Medium</option>
+    <option value="26">Hard</option>
+    <option value="22">Expert</option>
+  </select>
+  <button class="btn btn-s" id="notes" type="button">Notes: off</button>
+  <button class="btn btn-s" id="hint" type="button">Hint</button>
+  <button class="btn btn-s" id="restart" type="button">New puzzle</button>
+</div>
+
+<p class="hint">Click a square then type a number &nbsp;·&nbsp; <kbd>N</kbd> toggles pencil marks &nbsp;·&nbsp; <kbd>backspace</kbd> clears</p>
+
+<script>
+(function () {
+  var field = document.getElementById('field');
+  var leftEl = document.getElementById('left'), badEl = document.getElementById('bad'), timeEl = document.getElementById('time');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title'), ovText = document.getElementById('ov-text');
+  var levelSel = document.getElementById('level'), notesBtn = document.getElementById('notes');
+
+  var puzzle, solution, given, notes, cells = [], sel = -1, mistakes, seconds, timer, started, noteMode = false;
+
+  function idx(r, c) { return r * 9 + c; }
+
+  function allowed(g, i, v) {
+    var r = Math.floor(i / 9), c = i % 9;
+    for (var k = 0; k < 9; k++) {
+      if (g[idx(r, k)] === v || g[idx(k, c)] === v) return false;
+    }
+    var br = r - r % 3, bc = c - c % 3;
+    for (var y = 0; y < 3; y++)
+      for (var x = 0; x < 3; x++)
+        if (g[idx(br + y, bc + x)] === v) return false;
+    return true;
+  }
+
+  function solve(g, limit) {
+    var i = g.indexOf(0);
+    if (i === -1) return 1;
+    var count = 0;
+    var nums = [1,2,3,4,5,6,7,8,9];
+    for (var n = 0; n < 9; n++) {
+      var v = nums[n];
+      if (!allowed(g, i, v)) continue;
+      g[i] = v;
+      count += solve(g, limit - count);
+      g[i] = 0;
+      if (count >= limit) return count;
+    }
+    return count;
+  }
+
+  function fillFull() {
+    var g = new Array(81).fill(0);
+    (function place(i) {
+      if (i === 81) return true;
+      var nums = [1,2,3,4,5,6,7,8,9];
+      for (var k = nums.length - 1; k > 0; k--) {
+        var j = Math.floor(Math.random() * (k + 1));
+        var t = nums[k]; nums[k] = nums[j]; nums[j] = t;
+      }
+      for (var n = 0; n < 9; n++) {
+        if (!allowed(g, i, nums[n])) continue;
+        g[i] = nums[n];
+        if (place(i + 1)) return true;
+        g[i] = 0;
+      }
+      return false;
+    })(0);
+    return g;
+  }
+
+  function makePuzzle(targetGivens) {
+    solution = fillFull();
+    var p = solution.slice();
+    var order = [];
+    for (var i = 0; i < 81; i++) order.push(i);
+    for (var k = order.length - 1; k > 0; k--) {
+      var j = Math.floor(Math.random() * (k + 1));
+      var t = order[k]; order[k] = order[j]; order[j] = t;
+    }
+    var givens = 81;
+    for (var o = 0; o < order.length && givens > targetGivens; o++) {
+      var pos = order[o], keep = p[pos];
+      p[pos] = 0;
+      var test = p.slice();
+      if (solve(test, 2) !== 1) p[pos] = keep;   // removing it would allow a second solution
+      else givens--;
+    }
+    return p;
+  }
+
+  function build() {
+    puzzle = makePuzzle(parseInt(levelSel.value, 10));
+    given = puzzle.map(function (v) { return v !== 0; });
+    notes = [];
+    for (var i = 0; i < 81; i++) notes.push({});
+    mistakes = 0; seconds = 0; started = false; sel = -1;
+    clearInterval(timer);
+    badEl.textContent = '0'; timeEl.textContent = '0';
+    overlay.hidden = true;
+
+    field.innerHTML = '';
+    cells = [];
+    for (var r = 0; r < 9; r++) {
+      for (var c = 0; c < 9; c++) {
+        var i2 = idx(r, c);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cell' + (given[i2] ? ' given' : '');
+        b.dataset.i = i2; b.dataset.r = r; b.dataset.c = c;
+        b.style.fontSize = 'clamp(13px, 4.2vw, 26px)';
+        field.appendChild(b);
+        cells.push(b);
+      }
+    }
+    render();
+  }
+
+  function countLeft() {
+    var n = 0;
+    for (var i = 0; i < 81; i++) if (!puzzle[i]) n++;
+    return n;
+  }
+
+  function render() {
+    var selVal = sel >= 0 ? puzzle[sel] : 0;
+    for (var i = 0; i < 81; i++) {
+      var b = cells[i];
+      b.className = 'cell' + (given[i] ? ' given' : '');
+      b.textContent = '';
+      if (puzzle[i]) {
+        b.textContent = puzzle[i];
+        if (!given[i] && puzzle[i] !== solution[i]) b.classList.add('bad');
+      } else {
+        var keys = Object.keys(notes[i]);
+        if (keys.length) {
+          var wrap = document.createElement('span');
+          wrap.className = 'notes';
+          for (var n = 1; n <= 9; n++) {
+            var s = document.createElement('span');
+            s.textContent = notes[i][n] ? n : '';
+            wrap.appendChild(s);
+          }
+          b.appendChild(wrap);
+        }
+      }
+      if (sel >= 0) {
+        var sr = Math.floor(sel / 9), sc = sel % 9, r = Math.floor(i / 9), c = i % 9;
+        if (i === sel) b.classList.add('sel');
+        else if (r === sr || c === sc ||
+                 (Math.floor(r / 3) === Math.floor(sr / 3) && Math.floor(c / 3) === Math.floor(sc / 3))) b.classList.add('peer');
+        if (selVal && puzzle[i] === selVal && i !== sel) b.classList.add('same');
+      }
+    }
+    leftEl.textContent = countLeft();
+  }
+
+  function startClock() {
+    if (started) return;
+    started = true;
+    timer = setInterval(function () { seconds++; timeEl.textContent = seconds; }, 1000);
+  }
+
+  function put(v) {
+    if (sel < 0 || given[sel]) return;
+    startClock();
+    if (v === 0) { puzzle[sel] = 0; notes[sel] = {}; return render(); }
+
+    if (noteMode) {
+      if (puzzle[sel]) return;
+      if (notes[sel][v]) delete notes[sel][v]; else notes[sel][v] = 1;
+      return render();
+    }
+
+    puzzle[sel] = v;
+    notes[sel] = {};
+    if (v !== solution[sel]) {
+      mistakes++;
+      badEl.textContent = mistakes;
+    }
+    render();
+    if (countLeft() === 0 && puzzle.every(function (x, i) { return x === solution[i]; })) win();
+  }
+
+  function win() {
+    clearInterval(timer);
+    var key = 'sudokuBest' + levelSel.value;
+    var prev = parseInt(localStorage.getItem(key) || '0', 10);
+    var note = 'Solved in ' + seconds + ' seconds with ' + mistakes + ' mistakes.';
+    if (!prev || seconds < prev) { localStorage.setItem(key, String(seconds)); note += ' Fastest at this level.'; }
+    else note += ' Your best here is ' + prev + ' seconds.';
+    ovTitle.textContent = 'Solved';
+    ovText.textContent = note;
+    overlay.hidden = false;
+  }
+
+  function hint() {
+    var empties = [];
+    for (var i = 0; i < 81; i++) if (puzzle[i] !== solution[i]) empties.push(i);
+    if (!empties.length) return;
+    var pick = empties[Math.floor(Math.random() * empties.length)];
+    sel = pick;
+    puzzle[pick] = solution[pick];
+    notes[pick] = {};
+    startClock();
+    render();
+    if (countLeft() === 0) win();
+  }
+
+  field.addEventListener('click', function (e) {
+    var b = e.target.closest('.cell');
+    if (!b) return;
+    sel = +b.dataset.i;
+    render();
+  });
+
+  document.getElementById('keys').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (b) put(+b.dataset.n);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key >= '1' && e.key <= '9') { put(+e.key); return; }
+    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') { put(0); return; }
+    if (e.key === 'n' || e.key === 'N') { toggleNotes(); return; }
+    if (sel < 0) return;
+    var r = Math.floor(sel / 9), c = sel % 9;
+    if (e.key === 'ArrowUp' && r > 0) { sel -= 9; e.preventDefault(); render(); }
+    if (e.key === 'ArrowDown' && r < 8) { sel += 9; e.preventDefault(); render(); }
+    if (e.key === 'ArrowLeft' && c > 0) { sel -= 1; e.preventDefault(); render(); }
+    if (e.key === 'ArrowRight' && c < 8) { sel += 1; e.preventDefault(); render(); }
+  });
+
+  function toggleNotes() {
+    noteMode = !noteMode;
+    notesBtn.textContent = 'Notes: ' + (noteMode ? 'on' : 'off');
+    notesBtn.classList.toggle('btn-s', !noteMode);
+  }
+
+  notesBtn.addEventListener('click', toggleNotes);
+  document.getElementById('hint').addEventListener('click', hint);
+  document.getElementById('restart').addEventListener('click', build);
+  document.getElementById('ov-btn').addEventListener('click', build);
+  levelSel.addEventListener('change', build);
+
+  build();
+})();
+</script>
+</body>
+</html>

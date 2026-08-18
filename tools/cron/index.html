@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cron explainer — Mohamed Elsayed</title>
+<meta name="description" content="Read a cron expression in plain English and see the next times it will actually fire. Includes the Laravel scheduler equivalent.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/cron/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><circle cx='50' cy='50' r='28' fill='none' stroke='white' stroke-width='7'/><path d='M50 32v20l14 8' stroke='white' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  #expr{font-family:var(--mono);font-size:1.15rem;text-align:center;letter-spacing:.12em}
+  .plain{font-size:1.15rem;line-height:1.6;color:var(--text)}
+  .plain b{color:var(--accent-2);font-weight:600}
+  .fields{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin-block-start:1rem}
+  @media (max-width:620px){.fields{grid-template-columns:1fr 1fr}}
+  .fld{background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:.6rem .7rem;text-align:center}
+  .fld code{font-family:var(--mono);font-size:.95rem;color:var(--accent-2);display:block}
+  .fld span{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);display:block;margin-block-start:.25rem}
+  .runs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.35rem}
+  .runs li{font-family:var(--mono);font-size:.85rem;color:var(--text-2);display:flex;gap:.75rem;flex-wrap:wrap}
+  .runs b{color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
+  .runs em{font-style:normal;color:var(--text-3);font-size:.78rem}
+  .presets{display:flex;flex-wrap:wrap;gap:.4rem}
+  .presets button{
+    font-family:var(--mono);font-size:.74rem;color:var(--text-2);
+    background:var(--surface-2);border:1px solid var(--line);border-radius:99px;
+    padding:.3rem .7rem;cursor:pointer;
+  }
+  .presets button:hover{border-color:var(--accent);color:var(--accent-2)}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Cron explainer</h1>
+    <p>Five fields that are easy to get wrong. Type an expression and read what it actually means, then check the next runs before you trust it with anything.</p>
+  </header>
+
+  <div class="card">
+    <label for="expr">Expression</label>
+    <input type="text" id="expr" spellcheck="false" value="30 2 * * 1-5">
+    <div class="fields" id="fields"></div>
+    <p class="err" id="err" style="margin:.8rem 0 0"></p>
+  </div>
+
+  <div class="card">
+    <label>In plain English</label>
+    <p class="plain" id="plain">—</p>
+  </div>
+
+  <div class="card">
+    <label>Next five runs <span class="note" id="tz"></span></label>
+    <ul class="runs" id="runs"></ul>
+  </div>
+
+  <div class="card">
+    <label>Laravel scheduler</label>
+    <div class="out" id="laravel" style="font-family:var(--mono);font-size:.85rem;color:var(--accent-2);background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;padding:.7rem .8rem;word-break:break-all"></div>
+  </div>
+
+  <div class="card">
+    <label>Common ones</label>
+    <div class="presets" id="presets">
+      <button type="button" data-e="* * * * *">every minute</button>
+      <button type="button" data-e="*/5 * * * *">every 5 minutes</button>
+      <button type="button" data-e="0 * * * *">hourly</button>
+      <button type="button" data-e="0 3 * * *">daily at 03:00</button>
+      <button type="button" data-e="30 2 * * 1-5">weekdays 02:30</button>
+      <button type="button" data-e="0 0 * * 0">weekly, Sunday</button>
+      <button type="button" data-e="0 4 1 * *">monthly, 1st</button>
+      <button type="button" data-e="0 0 1 1 *">yearly</button>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Times are shown in your own timezone; a server usually runs in UTC.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var expr = document.getElementById('expr'), err = document.getElementById('err');
+  var plain = document.getElementById('plain'), runsEl = document.getElementById('runs');
+  var fieldsEl = document.getElementById('fields'), laravel = document.getElementById('laravel');
+  document.getElementById('tz').textContent = '— ' + Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  var NAMES = ['minute', 'hour', 'day of month', 'month', 'day of week'];
+  var RANGES = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 6]];
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var ALIAS = {
+    jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,
+    sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6
+  };
+
+  function parseField(raw, i) {
+    var lo = RANGES[i][0], hi = RANGES[i][1];
+    var out = {};
+    raw.split(',').forEach(function (part) {
+      var stepSplit = part.split('/');
+      var body = stepSplit[0];
+      var step = stepSplit.length > 1 ? parseInt(stepSplit[1], 10) : 1;
+      if (stepSplit.length > 1 && (!step || step < 1)) throw new Error('Bad step in "' + part + '"');
+
+      var from, to;
+      if (body === '*') { from = lo; to = hi; }
+      else if (body.indexOf('-') > 0) {
+        var ab = body.split('-');
+        from = num(ab[0], i); to = num(ab[1], i);
+      } else { from = to = num(body, i); if (stepSplit.length > 1) to = hi; }
+
+      if (isNaN(from) || isNaN(to)) throw new Error('Cannot read "' + part + '" in the ' + NAMES[i] + ' field');
+      if (from < lo || to > hi || from > to) throw new Error('"' + part + '" is outside ' + lo + '-' + hi + ' for the ' + NAMES[i] + ' field');
+
+      for (var v = from; v <= to; v += step) out[i === 4 && v === 7 ? 0 : v] = 1;
+    });
+    return Object.keys(out).map(Number).sort(function (a, b) { return a - b; });
+  }
+
+  function num(s, i) {
+    s = String(s).trim().toLowerCase();
+    if (ALIAS[s] !== undefined && i >= 3) return ALIAS[s];
+    return parseInt(s, 10);
+  }
+
+  function listPhrase(arr, fmt) {
+    var parts = arr.map(fmt);
+    if (parts.length === 1) return parts[0];
+    if (parts.length === 2) return parts[0] + ' and ' + parts[1];
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+  }
+
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+
+  function describe(sets, raw) {
+    var mins = sets[0], hours = sets[1], doms = sets[2], months = sets[3], dows = sets[4];
+    var allM = raw[0] === '*', allH = raw[1] === '*', allDom = raw[2] === '*', allMon = raw[3] === '*', allDow = raw[4] === '*';
+
+    var timePart;
+    if (allM && allH) timePart = '<b>Every minute</b>';
+    else if (allM) timePart = '<b>Every minute</b> during ' + listPhrase(hours, function (h) { return two(h) + ':00'; });
+    else if (allH) timePart = 'At <b>minute ' + listPhrase(mins, String) + '</b> of every hour';
+    else {
+      var stamps = [];
+      hours.forEach(function (h) { mins.forEach(function (m) { if (stamps.length < 12) stamps.push(two(h) + ':' + two(m)); }); });
+      timePart = 'At <b>' + (stamps.length < 12 ? listPhrase(stamps, String) : stamps.length + ' times a day') + '</b>';
+    }
+
+    var dayPart = '';
+    if (!allDow) dayPart += ' on <b>' + listPhrase(dows, function (d) { return DAYS[d]; }) + '</b>';
+    if (!allDom) dayPart += (dayPart ? ' and' : '') + ' on <b>day ' + listPhrase(doms, String) + '</b> of the month';
+    if (!allMon) dayPart += ' in <b>' + listPhrase(months, function (m) { return MONTHS[m - 1]; }) + '</b>';
+    if (!dayPart) dayPart = ', every day';
+
+    return timePart + dayPart + '.';
+  }
+
+  function nextRuns(sets, howMany) {
+    var out = [];
+    var d = new Date();
+    d.setSeconds(0, 0);
+    d.setMinutes(d.getMinutes() + 1);
+    var guard = 0;
+    while (out.length < howMany && guard++ < 400000) {
+      if (sets[3].indexOf(d.getMonth() + 1) > -1 &&
+          sets[2].indexOf(d.getDate()) > -1 &&
+          sets[4].indexOf(d.getDay()) > -1 &&
+          sets[1].indexOf(d.getHours()) > -1 &&
+          sets[0].indexOf(d.getMinutes()) > -1) {
+        out.push(new Date(d));
+      }
+      d.setMinutes(d.getMinutes() + 1);
+    }
+    return out;
+  }
+
+  function relative(then) {
+    var diff = then - Date.now();
+    var m = Math.round(diff / 60000);
+    if (m < 60) return 'in ' + m + (m === 1 ? ' minute' : ' minutes');
+    var h = Math.round(m / 60);
+    if (h < 48) return 'in ' + h + (h === 1 ? ' hour' : ' hours');
+    return 'in ' + Math.round(h / 24) + ' days';
+  }
+
+  function laravelFor(raw) {
+    var s = raw.join(' ');
+    var map = {
+      '* * * * *': 'everyMinute()',
+      '*/5 * * * *': 'everyFiveMinutes()',
+      '*/10 * * * *': 'everyTenMinutes()',
+      '*/15 * * * *': 'everyFifteenMinutes()',
+      '*/30 * * * *': 'everyThirtyMinutes()',
+      '0 * * * *': 'hourly()',
+      '0 0 * * *': 'daily()',
+      '0 0 * * 0': 'weekly()',
+      '0 0 1 * *': 'monthly()',
+      '0 0 1 1 *': 'yearly()'
+    };
+    if (map[s]) return '$schedule->command(...)->' + map[s] + ';';
+    if (raw[2] === '*' && raw[3] === '*' && raw[4] === '*' && raw[0].indexOf(',') < 0 && raw[1].indexOf(',') < 0
+        && raw[0].indexOf('*') < 0 && raw[1].indexOf('*') < 0) {
+      return '$schedule->command(...)->dailyAt(\'' + two(+raw[1]) + ':' + two(+raw[0]) + '\');';
+    }
+    return '$schedule->command(...)->cron(\'' + s + '\');';
+  }
+
+  function run() {
+    err.textContent = '';
+    var raw = expr.value.trim().split(/\s+/);
+
+    fieldsEl.innerHTML = NAMES.map(function (n, i) {
+      return '<div class="fld"><code>' + (raw[i] || '—') + '</code><span>' + n + '</span></div>';
+    }).join('');
+
+    if (raw.length !== 5) {
+      err.textContent = 'A cron expression has five fields separated by spaces. This has ' + (expr.value.trim() ? raw.length : 0) + '.';
+      plain.textContent = '—'; runsEl.innerHTML = ''; laravel.textContent = '—';
+      return;
+    }
+
+    var sets;
+    try {
+      sets = raw.map(parseField);
+    } catch (e) {
+      err.textContent = e.message;
+      plain.textContent = '—'; runsEl.innerHTML = ''; laravel.textContent = '—';
+      return;
+    }
+
+    plain.innerHTML = describe(sets, raw);
+    laravel.textContent = laravelFor(raw);
+
+    var runs = nextRuns(sets, 5);
+    runsEl.innerHTML = runs.length
+      ? runs.map(function (d) {
+          return '<li><b>' + d.toLocaleString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) +
+                 '</b><em>' + relative(d) + '</em></li>';
+        }).join('')
+      : '<li><em>No run found in the next year — check the day of month against the month.</em></li>';
+  }
+
+  expr.addEventListener('input', run);
+  document.getElementById('presets').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (b) { expr.value = b.dataset.e; run(); }
+  });
+
+  run();
+})();
+</script>
+</body>
+</html>

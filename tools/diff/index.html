@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text diff — Mohamed Elsayed</title>
+<meta name="description" content="Compare two blocks of text line by line and see exactly what was added, removed or kept. Runs entirely in the browser.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/diff/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><rect x='22' y='30' width='24' height='40' rx='5' fill='%2334d399'/><rect x='54' y='30' width='24' height='40' rx='5' fill='%23f87171'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .result{
+    font-family:var(--mono);font-size:.82rem;line-height:1.8;
+    background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;
+    overflow-x:auto;max-block-size:520px;overflow-y:auto;
+  }
+  .row{display:grid;grid-template-columns:3.2rem 1.4rem 1fr;gap:.5rem;padding-inline:.6rem;white-space:pre-wrap;word-break:break-word}
+  .row .no{color:var(--text-3);text-align:end;font-size:.72rem;user-select:none}
+  .row .mk{color:var(--text-3);user-select:none}
+  .row.add{background:color-mix(in srgb,var(--ok) 16%, transparent)}
+  .row.add .mk{color:var(--ok)}
+  .row.del{background:color-mix(in srgb,var(--bad) 16%, transparent)}
+  .row.del .mk{color:var(--bad)}
+  .row.gap{color:var(--text-3);background:var(--surface);font-size:.72rem;padding-block:.2rem}
+  .tally{display:flex;gap:1.25rem;flex-wrap:wrap;font-family:var(--mono);font-size:.78rem;margin-block-start:.7rem}
+  .tally b{font-weight:500}
+  .tally .a{color:var(--ok)}
+  .tally .d{color:var(--bad)}
+  .tally .s{color:var(--text-3)}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Text diff</h1>
+    <p>Paste two versions of anything — a config, a translation file, a contract clause — and see which lines were added, removed or left alone.</p>
+  </header>
+
+  <div class="grid2">
+    <div class="card">
+      <label for="a">Original</label>
+      <textarea id="a" spellcheck="false"></textarea>
+    </div>
+    <div class="card">
+      <label for="b">Changed</label>
+      <textarea id="b" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="actions">
+      <button class="btn btn-p" id="run" type="button">Compare</button>
+      <button class="btn btn-s" id="sample" type="button">Load sample</button>
+      <button class="btn btn-s" id="swap" type="button">Swap sides</button>
+      <label class="note" style="display:inline-flex;align-items:center;gap:.4rem;margin:0;text-transform:none;letter-spacing:0;font-size:.85rem">
+        <input type="checkbox" id="trim" checked style="inline-size:auto;accent-color:var(--accent)"> ignore leading and trailing spaces
+      </label>
+      <label class="note" style="display:inline-flex;align-items:center;gap:.4rem;margin:0;text-transform:none;letter-spacing:0;font-size:.85rem">
+        <input type="checkbox" id="collapse" checked style="inline-size:auto;accent-color:var(--accent)"> collapse unchanged runs
+      </label>
+    </div>
+    <div class="tally" id="tally"></div>
+  </div>
+
+  <div class="card">
+    <label>Result</label>
+    <div class="result" id="result"></div>
+  </div>
+
+  <footer class="foot">
+    <span>Line based, using a longest common subsequence — the same idea git uses.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var A = document.getElementById('a'), B = document.getElementById('b');
+  var result = document.getElementById('result'), tally = document.getElementById('tally');
+  var trim = document.getElementById('trim'), collapse = document.getElementById('collapse');
+
+  var SAMPLE_A = 'server {\n  listen 80;\n  server_name example.com;\n  root /var/www/html;\n  index index.html;\n\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
+  var SAMPLE_B = 'server {\n  listen 443 ssl;\n  server_name example.com;\n  root /var/www/html;\n  index index.html;\n\n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n\n  location /api/ {\n    proxy_pass http://127.0.0.1:8000;\n  }\n}';
+
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  function key(line) { return trim.checked ? line.trim() : line; }
+
+  // classic LCS table; fine for the sizes a person pastes by hand
+  function diff(a, b) {
+    var n = a.length, m = b.length;
+    var lcs = [];
+    for (var i = 0; i <= n; i++) lcs.push(new Uint32Array(m + 1));
+    for (var i2 = n - 1; i2 >= 0; i2--) {
+      for (var j = m - 1; j >= 0; j--) {
+        lcs[i2][j] = key(a[i2]) === key(b[j])
+          ? lcs[i2 + 1][j + 1] + 1
+          : Math.max(lcs[i2 + 1][j], lcs[i2][j + 1]);
+      }
+    }
+    var out = [], x = 0, y = 0;
+    while (x < n && y < m) {
+      if (key(a[x]) === key(b[y])) { out.push({ t: ' ', line: a[x], x: x + 1, y: y + 1 }); x++; y++; }
+      else if (lcs[x + 1][y] >= lcs[x][y + 1]) { out.push({ t: '-', line: a[x], x: x + 1 }); x++; }
+      else { out.push({ t: '+', line: b[y], y: y + 1 }); y++; }
+    }
+    while (x < n) { out.push({ t: '-', line: a[x], x: x + 1 }); x++; }
+    while (y < m) { out.push({ t: '+', line: b[y], y: y + 1 }); y++; }
+    return out;
+  }
+
+  function render() {
+    var a = A.value.replace(/\r\n/g, '\n').split('\n');
+    var b = B.value.replace(/\r\n/g, '\n').split('\n');
+
+    if (!A.value && !B.value) {
+      result.innerHTML = '<div class="row gap"><span></span><span></span><span>Paste something into both sides, then press Compare.</span></div>';
+      tally.innerHTML = '';
+      return;
+    }
+
+    if (a.length * b.length > 4000000) {
+      result.innerHTML = '<div class="row gap"><span></span><span></span><span>That is a lot of lines. Compare smaller sections.</span></div>';
+      return;
+    }
+
+    var rows = diff(a, b);
+    var added = 0, removed = 0, same = 0;
+    rows.forEach(function (r) {
+      if (r.t === '+') added++; else if (r.t === '-') removed++; else same++;
+    });
+
+    var html = '', run = 0, buffer = [];
+    function flushRun() {
+      if (!collapse.checked || buffer.length <= 6) {
+        html += buffer.join('');
+      } else {
+        html += buffer.slice(0, 3).join('');
+        html += '<div class="row gap"><span></span><span></span><span>… ' + (buffer.length - 6) + ' unchanged lines</span></div>';
+        html += buffer.slice(-3).join('');
+      }
+      buffer = [];
+    }
+
+    rows.forEach(function (r) {
+      var cls = r.t === '+' ? 'add' : r.t === '-' ? 'del' : '';
+      var no = r.t === '+' ? (r.y || '') : (r.x || '');
+      var row = '<div class="row ' + cls + '"><span class="no">' + no + '</span><span class="mk">' + r.t + '</span><span>' + esc(r.line) + '</span></div>';
+      if (r.t === ' ') buffer.push(row);
+      else { flushRun(); html += row; }
+    });
+    flushRun();
+
+    result.innerHTML = html;
+    tally.innerHTML = '<span class="a"><b>+' + added + '</b> added</span>' +
+                      '<span class="d"><b>-' + removed + '</b> removed</span>' +
+                      '<span class="s"><b>' + same + '</b> unchanged</span>';
+  }
+
+  document.getElementById('run').addEventListener('click', render);
+  document.getElementById('sample').addEventListener('click', function () {
+    A.value = SAMPLE_A; B.value = SAMPLE_B; render();
+  });
+  document.getElementById('swap').addEventListener('click', function () {
+    var t = A.value; A.value = B.value; B.value = t; render();
+  });
+  [trim, collapse].forEach(function (el) { el.addEventListener('change', render); });
+  [A, B].forEach(function (el) {
+    el.addEventListener('input', function () {
+      if (A.value.length + B.value.length < 40000) render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

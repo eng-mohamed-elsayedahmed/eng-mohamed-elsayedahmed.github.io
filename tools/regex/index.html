@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regex tester — Mohamed Elsayed</title>
+<meta name="description" content="Test a regular expression against your own text with live highlighting, capture groups, and a replace preview. Runs in the browser.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/tools/regex/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><text y='68' x='50' text-anchor='middle' font-size='48' font-family='monospace' font-weight='700' fill='white'>.*</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tools.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .patrow{display:flex;gap:.5rem;align-items:center}
+  .patrow .slash{font-family:var(--mono);color:var(--text-3);font-size:1.1rem}
+  #flags{inline-size:6.5rem;flex:none;text-align:center}
+  .flagbar{display:flex;flex-wrap:wrap;gap:.5rem;margin-block-start:.7rem}
+  .flag{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.76rem;color:var(--text-2)}
+  .flag input{accent-color:var(--accent);inline-size:auto}
+  .hl{
+    font-family:var(--mono);font-size:.86rem;line-height:1.85;white-space:pre-wrap;word-break:break-word;
+    background:var(--surface-2);border:1px solid var(--line-solid);border-radius:9px;
+    padding:.75rem .85rem;min-block-size:150px;max-block-size:340px;overflow-y:auto;
+  }
+  mark{background:color-mix(in srgb,var(--accent) 38%, transparent);color:var(--text);border-radius:3px;padding:.05rem 0}
+  mark:nth-of-type(2n){background:color-mix(in srgb,#f472b6 34%, transparent)}
+  table{inline-size:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem}
+  th,td{text-align:start;padding:.4rem .5rem;border-block-end:1px solid var(--line)}
+  th{color:var(--text-3);font-weight:500;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem}
+  td{color:var(--text-2);word-break:break-all}
+  .count{font-family:var(--mono);font-size:.76rem;color:var(--accent-2)}
+  .scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <a class="back" href="/tools/">&larr; tools</a>
+    <a class="back" href="/" style="margin-inline-start:auto">eng-mohamed-elsayedahmed.github.io</a>
+  </div>
+
+  <header class="head">
+    <h1>Regex tester</h1>
+    <p>Write a pattern, paste your text, and watch the matches light up as you type. Capture groups are listed underneath, and the replace box shows the result before you commit to it.</p>
+  </header>
+
+  <div class="card">
+    <label for="pattern">Pattern</label>
+    <div class="patrow">
+      <span class="slash">/</span>
+      <input type="text" id="pattern" spellcheck="false" value="(\d{2})-(\d{2})-(\d{4})">
+      <span class="slash">/</span>
+      <input type="text" id="flags" spellcheck="false" value="g">
+    </div>
+    <div class="flagbar">
+      <label class="flag"><input type="checkbox" data-f="g" checked> g global</label>
+      <label class="flag"><input type="checkbox" data-f="i"> i ignore case</label>
+      <label class="flag"><input type="checkbox" data-f="m"> m multiline</label>
+      <label class="flag"><input type="checkbox" data-f="s"> s dot matches newline</label>
+      <label class="flag"><input type="checkbox" data-f="u"> u unicode</label>
+    </div>
+    <p class="err" id="err" style="margin:.7rem 0 0"></p>
+  </div>
+
+  <div class="card">
+    <label for="text">Test text</label>
+    <textarea id="text" spellcheck="false">Invoice 12-04-2026 was settled.
+Contract 03-11-2025 is still open.
+Renewal falls on 28-02-2027.</textarea>
+  </div>
+
+  <div class="card">
+    <label>Matches <span class="count" id="count"></span></label>
+    <div class="hl" id="hl"></div>
+  </div>
+
+  <div class="card" id="groupsCard" hidden>
+    <label>Capture groups</label>
+    <div class="scroll"><table id="groups"></table></div>
+  </div>
+
+  <div class="card">
+    <label for="replace">Replace with <span class="note">— $1, $2 for groups</span></label>
+    <input type="text" id="replace" spellcheck="false" value="$3/$2/$1">
+    <div class="hl" id="out" style="margin-block-start:.7rem;min-block-size:90px"></div>
+  </div>
+
+  <footer class="foot">
+    <span>Uses the browser own regular expression engine, so what you see here is what your JavaScript will do.</span>
+    <a href="/tools/">All tools &rarr;</a>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var pattern = document.getElementById('pattern'), flags = document.getElementById('flags');
+  var text = document.getElementById('text'), hl = document.getElementById('hl');
+  var err = document.getElementById('err'), count = document.getElementById('count');
+  var groupsCard = document.getElementById('groupsCard'), groups = document.getElementById('groups');
+  var replace = document.getElementById('replace'), out = document.getElementById('out');
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.flag input'));
+
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function syncBoxesFromField() {
+    var f = flags.value;
+    boxes.forEach(function (b) { b.checked = f.indexOf(b.dataset.f) > -1; });
+  }
+  function syncFieldFromBoxes() {
+    flags.value = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.dataset.f; }).join('');
+    run();
+  }
+
+  function run() {
+    err.textContent = '';
+    groupsCard.hidden = true;
+    var src = text.value;
+
+    if (!pattern.value) {
+      hl.textContent = src; count.textContent = ''; out.textContent = ''; return;
+    }
+
+    var re;
+    try {
+      re = new RegExp(pattern.value, flags.value);
+    } catch (e) {
+      err.textContent = e.message;
+      hl.textContent = src;
+      count.textContent = '';
+      out.textContent = '';
+      return;
+    }
+
+    var global = flags.value.indexOf('g') > -1;
+    var html = '', last = 0, n = 0, rows = [];
+    var scan = new RegExp(pattern.value, global ? flags.value : flags.value + 'g');
+    var m, guard = 0;
+
+    while ((m = scan.exec(src)) !== null) {
+      if (guard++ > 5000) break;
+      html += esc(src.slice(last, m.index)) + '<mark>' + esc(m[0] || '') + '</mark>';
+      last = m.index + (m[0] ? m[0].length : 0);
+      n++;
+      if (m.length > 1 && rows.length < 60) {
+        rows.push({ i: n, full: m[0], caps: m.slice(1) });
+      }
+      if (m[0] === '') scan.lastIndex++;          // zero-length match, keep moving
+      if (!global) break;
+    }
+    html += esc(src.slice(last));
+    hl.innerHTML = html || '<span style="color:var(--text-3)">nothing to show</span>';
+    count.textContent = n + (n === 1 ? ' match' : ' matches');
+
+    if (rows.length) {
+      groupsCard.hidden = false;
+      var maxCaps = Math.max.apply(null, rows.map(function (r) { return r.caps.length; }));
+      var head = '<tr><th>#</th><th>match</th>';
+      for (var g = 1; g <= maxCaps; g++) head += '<th>$' + g + '</th>';
+      head += '</tr>';
+      var body = rows.map(function (r) {
+        var tds = '<tr><td>' + r.i + '</td><td>' + esc(r.full) + '</td>';
+        for (var g2 = 0; g2 < maxCaps; g2++) tds += '<td>' + esc(r.caps[g2] === undefined ? '—' : r.caps[g2]) + '</td>';
+        return tds + '</tr>';
+      }).join('');
+      groups.innerHTML = head + body;
+    }
+
+    try {
+      out.textContent = src.replace(re, replace.value);
+    } catch (e2) {
+      out.textContent = '';
+    }
+  }
+
+  [pattern, flags, text, replace].forEach(function (el) { el.addEventListener('input', run); });
+  flags.addEventListener('input', syncBoxesFromField);
+  boxes.forEach(function (b) { b.addEventListener('change', syncFieldFromBoxes); });
+
+  syncBoxesFromField();
+  run();
+})();
+</script>
+</body>
+</html>

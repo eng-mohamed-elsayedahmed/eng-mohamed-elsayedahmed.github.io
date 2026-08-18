@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Simon — Mohamed Elsayed</title>
+<meta name="description" content="Repeat the sequence as it grows. Each pad has its own tone, generated live with the Web Audio API — no sound files to load.">
+<meta name="theme-color" content="#6366f1">
+<link rel="canonical" href="https://eng-mohamed-elsayedahmed.github.io/games/simon/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><path d='M50 18a32 32 0 0132 32H50z' fill='%23f472b6'/><path d='M82 50a32 32 0 01-32 32V50z' fill='%23fbbf24'/><path d='M50 82a32 32 0 01-32-32h32z' fill='%2334d399'/><path d='M18 50a32 32 0 0132-32v32z' fill='%2360a5fa'/><circle cx='50' cy='50' r='11' fill='%236366f1'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../games.css">
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+  .pads{
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;
+    aspect-ratio:1;padding:10px;
+    background:var(--board);border:1px solid var(--line-solid);border-radius:50%;
+  }
+  .pad{
+    border:0;cursor:pointer;padding:0;min-inline-size:0;min-block-size:0;
+    opacity:.42;transition:opacity .14s,transform .14s var(--ease),box-shadow .14s;
+  }
+  .pad:hover{opacity:.62}
+  .pad.lit{opacity:1;transform:scale(1.015)}
+  .pad:focus-visible{outline:3px solid var(--text);outline-offset:-6px}
+  .pad.p0{background:#f472b6;border-start-start-radius:100%}
+  .pad.p1{background:#fbbf24;border-start-end-radius:100%}
+  .pad.p2{background:#60a5fa;border-end-start-radius:100%}
+  .pad.p3{background:#34d399;border-end-end-radius:100%}
+  .pads.lock .pad{cursor:default}
+  .hub{
+    position:absolute;inset:34%;border-radius:50%;
+    background:var(--bg);border:1px solid var(--line-solid);
+    display:grid;place-items:center;pointer-events:none;text-align:center;
+  }
+  .hub b{font-family:var(--mono);font-size:1.9rem;font-weight:700;color:var(--accent-2);line-height:1;font-variant-numeric:tabular-nums}
+  .hub span{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text-3);display:block;margin-block-start:.25rem}
+</style>
+</head>
+<body>
+
+<div class="top wide">
+  <a class="back" href="/games/">&larr; games</a>
+  <h1>Simon</h1>
+</div>
+
+<div class="scores wide">
+  <div class="sc"><span>Round</span><b id="round">0</b></div>
+  <div class="sc"><span>Best</span><b id="best">0</b></div>
+</div>
+
+<div class="stage wide">
+  <div class="pads" id="pads">
+    <button class="pad p0" type="button" data-i="0" aria-label="Pad one"></button>
+    <button class="pad p1" type="button" data-i="1" aria-label="Pad two"></button>
+    <button class="pad p2" type="button" data-i="2" aria-label="Pad three"></button>
+    <button class="pad p3" type="button" data-i="3" aria-label="Pad four"></button>
+  </div>
+  <div class="hub"><div><b id="hubN">—</b><span id="hubT">ready</span></div></div>
+  <div class="overlay" id="overlay">
+    <h2 id="ov-title">Simon</h2>
+    <p id="ov-text">Watch the sequence, then repeat it. It gains one step every round.</p>
+    <button class="btn" id="ov-btn" type="button">Play</button>
+  </div>
+</div>
+
+<div class="bar wide">
+  <select id="speed" aria-label="Speed">
+    <option value="620">Calm</option>
+    <option value="460" selected>Normal</option>
+    <option value="320">Quick</option>
+  </select>
+  <button class="btn btn-s" id="restart" type="button">New game</button>
+  <button class="btn btn-s" id="mute" type="button">Sound: on</button>
+</div>
+
+<p class="hint">Keys <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> work too &nbsp;·&nbsp; each pad has its own tone</p>
+
+<script>
+(function () {
+  var TONES = [329.63, 415.30, 261.63, 493.88];   // E4, G#4, C4, B4 — a chord, so mistakes still sound musical
+  var pads = document.getElementById('pads');
+  var padEls = Array.prototype.slice.call(pads.querySelectorAll('.pad'));
+  var roundEl = document.getElementById('round'), bestEl = document.getElementById('best');
+  var hubN = document.getElementById('hubN'), hubT = document.getElementById('hubT');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title'), ovText = document.getElementById('ov-text'), ovBtn = document.getElementById('ov-btn');
+  var speedSel = document.getElementById('speed'), muteBtn = document.getElementById('mute');
+
+  var seq = [], step = 0, best, playing = false, accepting = false, muted = false, audio = null;
+
+  best = parseInt(localStorage.getItem('simonBest') || '0', 10);
+  bestEl.textContent = best;
+
+  function tone(i, ms) {
+    if (muted) return;
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      var osc = audio.createOscillator(), gain = audio.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = TONES[i];
+      gain.gain.setValueAtTime(0.0001, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, audio.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + ms / 1000);
+      osc.connect(gain); gain.connect(audio.destination);
+      osc.start(); osc.stop(audio.currentTime + ms / 1000 + 0.05);
+    } catch (e) { /* audio is a nicety, never a requirement */ }
+  }
+
+  function flash(i, ms) {
+    padEls[i].classList.add('lit');
+    tone(i, ms);
+    setTimeout(function () { padEls[i].classList.remove('lit'); }, ms * 0.75);
+  }
+
+  function speed() {
+    var base = parseInt(speedSel.value, 10);
+    return Math.max(190, base - seq.length * 8);
+  }
+
+  function playBack() {
+    accepting = false;
+    pads.classList.add('lock');
+    hubT.textContent = 'watch';
+    var ms = speed(), i = 0;
+    var t = setInterval(function () {
+      if (i >= seq.length) {
+        clearInterval(t);
+        accepting = true;
+        pads.classList.remove('lock');
+        hubT.textContent = 'your turn';
+        return;
+      }
+      flash(seq[i], ms * 0.6);
+      i++;
+    }, ms);
+  }
+
+  function nextRound() {
+    seq.push(Math.floor(Math.random() * 4));
+    step = 0;
+    roundEl.textContent = seq.length;
+    hubN.textContent = seq.length;
+    setTimeout(playBack, 550);
+  }
+
+  function press(i) {
+    if (!accepting) return;
+    flash(i, 220);
+    if (seq[step] === i) {
+      step++;
+      if (step === seq.length) {
+        accepting = false;
+        hubT.textContent = 'nice';
+        setTimeout(nextRound, 620);
+      }
+      return;
+    }
+    lose();
+  }
+
+  function lose() {
+    accepting = false;
+    playing = false;
+    pads.classList.add('lock');
+    var reached = seq.length - 1;
+    if (reached > best) {
+      best = reached;
+      bestEl.textContent = best;
+      localStorage.setItem('simonBest', String(best));
+      ovTitle.textContent = 'New best';
+      ovText.textContent = 'You reached round ' + reached + '. Nothing has beaten that yet.';
+    } else {
+      ovTitle.textContent = 'Wrong pad';
+      ovText.textContent = 'You reached round ' + reached + '. Best is ' + best + '.';
+    }
+    ovBtn.textContent = 'Play again';
+    hubT.textContent = 'over';
+    overlay.hidden = false;
+  }
+
+  function start() {
+    seq = []; step = 0; playing = true;
+    roundEl.textContent = '0';
+    hubN.textContent = '0';
+    overlay.hidden = true;
+    pads.classList.remove('lock');
+    if (!audio && !muted) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    nextRound();
+  }
+
+  pads.addEventListener('click', function (e) {
+    var b = e.target.closest('.pad');
+    if (b) press(+b.dataset.i);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key >= '1' && e.key <= '4') press(+e.key - 1);
+    if (e.key === 'r' || e.key === 'R') start();
+  });
+
+  ovBtn.addEventListener('click', start);
+  document.getElementById('restart').addEventListener('click', start);
+  speedSel.addEventListener('change', function () { if (!playing) return; });
+  muteBtn.addEventListener('click', function () {
+    muted = !muted;
+    muteBtn.textContent = 'Sound: ' + (muted ? 'off' : 'on');
+  });
+})();
+</script>
+</body>
+</html>
