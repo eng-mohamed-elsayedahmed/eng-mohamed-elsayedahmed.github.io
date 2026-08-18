@@ -21,8 +21,17 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script>
+  // set before paint so the page never flashes the wrong theme or direction
+  (function(){
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+    var l = localStorage.getItem('lang');
+    if (l === 'ar') { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; }
+  })();
+</script>
 
 <script type="application/ld+json">
 {
@@ -51,78 +60,154 @@
 
 <main class="page">
 
-  <p class="host">eng-mohamed-elsayedahmed.github.io</p>
+  <div class="bar">
+    <p class="host">eng-mohamed-elsayedahmed.github.io</p>
+    <div class="controls">
+      <button id="theme" class="ctl" type="button" title="Theme">
+        <span class="ctl-ico" data-ico="theme" aria-hidden="true"></span>
+        <span class="ctl-lbl" data-i18n="ctl.theme">System</span>
+      </button>
+      <button id="lang" class="ctl" type="button" data-i18n-attr="title|ctl.langTitle" title="Switch language">
+        <span class="ctl-lbl" data-i18n="ctl.lang">العربية</span>
+      </button>
+    </div>
+  </div>
 
   <header class="intro">
     <img class="avatar" src="assets/profile.jpg" alt="Mohamed Elsayed" width="96" height="96">
     <div>
-      <h1>Mohamed Elsayed</h1>
-      <p class="name-ar" lang="ar" dir="rtl">محمد محمود السيد أحمد</p>
+      <h1 data-i18n="name">Mohamed Elsayed</h1>
+      <p class="name-alt" data-i18n="nameAlt" data-i18n-dir="auto">محمد محمود السيد أحمد</p>
     </div>
   </header>
 
-  <p class="role">
+  <p class="role" data-i18n="role" data-i18n-html>
     Full-Stack &amp; Mobile Developer. I build enterprise web platforms with
     <b>Angular</b>, production mobile apps with <b>Flutter</b>, and the
     <b>PHP/Laravel</b> APIs behind them.
   </p>
 
   <ul class="facts">
-    <li><span>3</span>years building software</li>
-    <li><span>15+</span>systems delivered</li>
-    <li><span>Cairo</span>working with Egypt &amp; Saudi Arabia</li>
+    <li><span>3</span><em data-i18n="fact.years">years building software</em></li>
+    <li><span>15+</span><em data-i18n="fact.projects">systems delivered</em></li>
+    <li><span>2</span><em data-i18n="fact.apps">mobile apps shipped</em></li>
+    <li><span data-i18n="fact.cityValue">Cairo</span><em data-i18n="fact.city">Egypt &amp; Saudi Arabia</em></li>
   </ul>
 
-  <nav class="routes" aria-labelledby="routes-here">
-    <h2 class="group" id="routes-here">On this domain</h2>
+  <!-- stack -->
+  <section class="block">
+    <h2 class="group" data-i18n="grp.stack">What I work with</h2>
+    <div class="stack">
+      <div class="lane">
+        <h3 data-i18n="stack.front">Frontend</h3>
+        <ul><li>Angular</li><li>TypeScript</li><li>RxJS</li><li>NgRx</li><li>SSR</li></ul>
+      </div>
+      <div class="lane">
+        <h3 data-i18n="stack.mobile">Mobile</h3>
+        <ul><li>Flutter</li><li>Dart</li><li>BLoC</li><li>Firebase</li></ul>
+      </div>
+      <div class="lane">
+        <h3 data-i18n="stack.back">Backend</h3>
+        <ul><li>PHP</li><li>Laravel</li><li>MySQL</li><li>REST APIs</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- selected work -->
+  <section class="block">
+    <h2 class="group" data-i18n="grp.work">Selected work</h2>
+    <div class="work">
+
+      <article class="job">
+        <span class="cat" data-i18n="w1.cat">Product — Construction ERP</span>
+        <h3>Bonyan ERP</h3>
+        <p data-i18n="w1.desc">The company commercial product for finishing and decoration firms — projects, BOQ work items, contractors, vouchers and payments. Built on the Loom ERP codebase I developed.</p>
+        <ul class="tech"><li>Angular</li><li>PHP</li><li>MySQL</li></ul>
+      </article>
+
+      <article class="job">
+        <span class="cat" data-i18n="w2.cat">Mobile App — Education Quality</span>
+        <h3 data-i18n="w2.title">QMS Ataa — Quality Management App</h3>
+        <p data-i18n="w2.desc">Flutter app for a Saudi education authority: 18 modules covering school visits, standards, evaluations and corrective plans, with role-scoped access and an Arabic-first RTL interface.</p>
+        <ul class="tech"><li>Flutter</li><li>Dart</li><li>BLoC</li></ul>
+      </article>
+
+      <article class="job">
+        <span class="cat" data-i18n="w3.cat">Education Platform — Saudi Arabia</span>
+        <h3 data-i18n="w3.title">Ataa Web Platform &amp; Admin</h3>
+        <p data-i18n="w3.desc">Dual-module platform: a quality management system for standards and school visits, and an operational planning system with NgRx, an admin dashboard and PDF reporting.</p>
+        <ul class="tech"><li>Angular</li><li>NgRx</li><li>PHP</li></ul>
+      </article>
+
+      <article class="job">
+        <span class="cat" data-i18n="w4.cat">Admin Dashboard — Hosting &amp; Domains</span>
+        <h3>It Plus Dashboard</h3>
+        <p data-i18n="w4.desc">Back-office for a hosting and domain business: 40+ modules spanning orders, invoices, hosting plans, domains, clients and ad campaigns, with charted reporting.</p>
+        <ul class="tech"><li>Angular 18</li><li>TypeScript</li><li>ApexCharts</li></ul>
+      </article>
+
+    </div>
+    <a class="more" href="/portfolio/#projects"><span data-i18n="work.more">All 16 projects in the portfolio</span> <span class="ar" aria-hidden="true">→</span></a>
+  </section>
+
+  <!-- routes -->
+  <nav class="block routes" aria-labelledby="routes-here">
+    <h2 class="group" id="routes-here" data-i18n="grp.here">On this domain</h2>
 
     <a class="route" href="/portfolio/">
       <code class="path">/portfolio/</code>
-      <span class="what">Full portfolio — work, stack, experience, case studies</span>
-      <span class="arrow" aria-hidden="true">→</span>
+      <span class="what" data-i18n="r.portfolio">Full portfolio — work, stack, experience, case studies</span>
+      <span class="ar" aria-hidden="true">→</span>
     </a>
 
     <a class="route" href="/portfolio/Mohamed_Elsayed_CV.pdf">
       <code class="path">/portfolio/…CV.pdf</code>
-      <span class="what">Curriculum vitae, two pages</span>
-      <span class="arrow" aria-hidden="true">→</span>
+      <span class="what" data-i18n="r.cv">Curriculum vitae, two pages</span>
+      <span class="ar" aria-hidden="true">→</span>
+    </a>
+
+    <a class="route" href="/snake/">
+      <code class="path">/snake/</code>
+      <span class="what" data-i18n="r.snake">Snake — a small game, no libraries, works on touch</span>
+      <span class="ar" aria-hidden="true">→</span>
     </a>
   </nav>
 
-  <nav class="routes" aria-labelledby="routes-away">
-    <h2 class="group" id="routes-away">Elsewhere</h2>
+  <nav class="block routes" aria-labelledby="routes-away">
+    <h2 class="group" id="routes-away" data-i18n="grp.away">Elsewhere</h2>
 
     <a class="route" href="https://www.linkedin.com/in/mohamed-mahmoud-957731222/" target="_blank" rel="noopener">
       <code class="path">linkedin</code>
-      <span class="what">Professional profile and updates</span>
-      <span class="arrow" aria-hidden="true">↗</span>
+      <span class="what" data-i18n="r.linkedin">Professional profile and updates</span>
+      <span class="ar" aria-hidden="true">↗</span>
     </a>
 
     <a class="route" href="https://github.com/eng-mohamed-elsayedahmed" target="_blank" rel="noopener">
       <code class="path">github</code>
-      <span class="what">Source for the sites hosted here</span>
-      <span class="arrow" aria-hidden="true">↗</span>
+      <span class="what" data-i18n="r.github">Source for the sites hosted here</span>
+      <span class="ar" aria-hidden="true">↗</span>
     </a>
 
     <a class="route" href="https://wa.me/201017483005">
       <code class="path">whatsapp</code>
-      <span class="what">+20 101 748 3005 — fastest way to reach me</span>
-      <span class="arrow" aria-hidden="true">↗</span>
+      <span class="what" data-i18n="r.whatsapp">+20 101 748 3005 — fastest way to reach me</span>
+      <span class="ar" aria-hidden="true">↗</span>
     </a>
 
     <a class="route" href="mailto:mohamedalsayidahmed@gmail.com">
       <code class="path">email</code>
       <span class="what">mohamedalsayidahmed@gmail.com</span>
-      <span class="arrow" aria-hidden="true">↗</span>
+      <span class="ar" aria-hidden="true">↗</span>
     </a>
   </nav>
 
   <footer class="foot">
-    <span>Built and hosted from this repository.</span>
-    <a href="/portfolio/">Open the portfolio →</a>
+    <span data-i18n="foot.note">Built and hosted from this repository.</span>
+    <a href="/portfolio/" data-i18n="foot.cta">Open the portfolio →</a>
   </footer>
 
 </main>
 
+<script src="app.js"></script>
 </body>
 </html>
