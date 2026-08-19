@@ -114,24 +114,78 @@
     walkAttrs(document.body, ar);
     var btn = document.getElementById('i18n-toggle');
     if (btn) btn.textContent = ar ? 'English' : 'العربية';
+    paintTheme();
     localStorage.setItem('lang', lang);
     busy = false;
   }
 
-  function mountToggle() {
+  /* theme, kept in the same storage key the front door writes, so a choice made
+     anywhere on the domain is the choice everywhere */
+  var THEMES = ['system', 'light', 'dark'];
+  var ICON = { system: '◐', light: '☀', dark: '☾' };
+  var THEME_LABEL = {
+    en: { system: 'System', light: 'Light', dark: 'Dark' },
+    ar: { system: 'تلقائي', light: 'فاتح', dark: 'داكن' }
+  };
+
+  function currentTheme() { return localStorage.getItem('theme') || 'system'; }
+
+  function paintTheme() {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    var mode = currentTheme();
+    btn.querySelector('.ico').textContent = ICON[mode];
+    btn.querySelector('.lbl').textContent = THEME_LABEL[lang][mode];
+    btn.setAttribute('aria-label', THEME_LABEL[lang][mode]);
+  }
+
+  function setTheme(mode) {
+    if (mode === 'system') {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.removeItem('theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', mode);
+      localStorage.setItem('theme', mode);
+    }
+    paintTheme();
+  }
+
+  function mountControls() {
     var host = document.querySelector('.top');
     if (!host) return;
+
+    // the domain link used to claim the free space with an inline margin,
+    // which left the controls nowhere to sit
+    var links = host.querySelectorAll('.back');
+    if (links.length > 1) links[links.length - 1].style.marginInlineStart = '';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'ctrls';
+
+    var theme = document.createElement('button');
+    theme.id = 'theme-toggle';
+    theme.type = 'button';
+    theme.className = 'ctlbtn';
+    theme.innerHTML = '<span class="ico"></span><span class="lbl"></span>';
+    theme.addEventListener('click', function () {
+      setTheme(THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length]);
+    });
+
     var btn = document.createElement('button');
     btn.id = 'i18n-toggle';
     btn.type = 'button';
-    btn.className = 'langbtn';
+    btn.className = 'ctlbtn langbtn';
     btn.textContent = lang === 'ar' ? 'English' : 'العربية';
     btn.addEventListener('click', function () { apply(lang === 'ar' ? 'en' : 'ar'); });
-    host.appendChild(btn);
+
+    wrap.appendChild(theme);
+    wrap.appendChild(btn);
+    host.appendChild(wrap);
+    paintTheme();
   }
 
   function start() {
-    mountToggle();
+    mountControls();
     if (lang === 'ar') apply('ar');
 
     // games write their results into the page as they are played

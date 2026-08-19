@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../games.css">
+<script src="/games/joystick.js"></script>
 <script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   .play{display:grid;grid-template-columns:1fr 96px;gap:10px;align-items:start}
@@ -23,8 +24,7 @@
   }
   .nextbox span{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-3);display:block;margin-block-end:.35rem}
   canvas#next{aspect-ratio:1;background:none;border:0;border-radius:0}
-  .pad{direction:ltr;display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-block-start:.25rem}
-  .pad button{
+    .pad button{
     font-family:var(--mono);font-size:1rem;color:var(--text-2);
     background:var(--surface);border:1px solid var(--line-solid);border-radius:11px;
     padding:.7rem 0;cursor:pointer;
@@ -33,7 +33,7 @@
   @media (min-width:620px){.pad{display:none}}
 </style>
 </head>
-<body>
+<body class="fit">
 
 <div class="top wide">
   <a class="back" href="/games/">&larr; games</a>
@@ -42,7 +42,7 @@
 
 <div class="stage wide">
   <div class="play">
-    <canvas id="board" width="300" height="600" aria-label="Tetris board"></canvas>
+    <canvas id="board" data-fit data-ar="0.5" width="300" height="600" aria-label="Tetris board"></canvas>
     <div class="side">
       <div class="nextbox">
         <span>Next</span>
@@ -60,11 +60,12 @@
   </div>
 </div>
 
-<div class="pad wide">
-  <button type="button" data-act="left" aria-label="Move left">←</button>
-  <button type="button" data-act="rot" aria-label="Rotate">⟳</button>
-  <button type="button" data-act="right" aria-label="Move right">→</button>
-  <button type="button" data-act="drop" aria-label="Hard drop">⤓</button>
+<div class="controls-row">
+  <div class="stick" id="stick"></div>
+  <div class="actions-col">
+    <button type="button" data-act="rot" aria-label="Rotate">&#x27F3;</button>
+    <button type="button" data-act="drop" aria-label="Hard drop">&#x2913;</button>
+  </div>
 </div>
 
 <p class="hint"><kbd>←</kbd> <kbd>→</kbd> move &nbsp;·&nbsp; <kbd>↑</kbd> rotate &nbsp;·&nbsp; <kbd>↓</kbd> soft drop &nbsp;·&nbsp; <kbd>space</kbd> hard drop &nbsp;·&nbsp; <kbd>P</kbd> pause</p>
@@ -298,14 +299,20 @@
     if (e.key === 'r' || e.key === 'R') { state = 'over'; play(); }
   });
 
-  document.querySelector('.pad').addEventListener('click', function (e) {
+  window.Games.mountStick(document.getElementById('stick'), function (dir) {
+    if (state !== 'running') return;
+    if (dir === 'left') move(-1);
+    if (dir === 'right') move(1);
+    if (dir === 'down') softDrop();
+    if (dir === 'up') rotate();
+    draw();
+  });
+
+  document.querySelector('.actions-col').addEventListener('click', function (e) {
     var b = e.target.closest('button');
     if (!b || state !== 'running') return;
-    var a = b.dataset.act;
-    if (a === 'left') move(-1);
-    if (a === 'right') move(1);
-    if (a === 'rot') rotate();
-    if (a === 'drop') hardDrop();
+    if (b.dataset.act === 'rot') rotate();
+    if (b.dataset.act === 'drop') hardDrop();
     draw();
   });
 

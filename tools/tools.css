@@ -95,23 +95,30 @@ input[type=color]{
   .back{padding-block:.5rem}
 }
 
-/* language toggle injected by the shared i18n layer */
-.langbtn{
-  margin-inline-start:auto;
-  font-family:var(--sans);font-size:.76rem;font-weight:600;color:var(--text-2);
-  background:var(--surface);border:1px solid var(--line-solid);border-radius:99px;
-  padding:.3rem .75rem;cursor:pointer;transition:color .2s,border-color .2s,background .2s;
-}
-.langbtn:hover{color:var(--text);border-color:var(--accent);background:var(--surface-2)}
-.langbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 :root[lang="ar"] body{font-family:"Cairo","Inter",system-ui,sans-serif}
 :root[lang="ar"] .hint,:root[lang="ar"] .head p,:root[lang="ar"] .note{font-family:"Cairo","Inter",system-ui,sans-serif}
 
 /* one row shape in both directions: back link at the start, title filling the
    middle, language toggle always last */
 .top h1{flex:1;text-align:end;margin:0}
-.langbtn{margin-inline-start:auto;flex:none}
-.top h1 + .langbtn{margin-inline-start:.6rem}
+.top h1 + .ctrls{margin-inline-start:.6rem}
 /* the back arrow is a pseudo element so the cascade places it on the correct
    side instead of bidi guessing where a character in the string belongs */
 :root[lang="ar"] .back::before{content:"→ "}
+
+/* ---- shared page controls: theme + language, always last in the row ---- */
+.ctrls{margin-inline-start:auto;display:flex;gap:.4rem;flex:none}
+.ctlbtn{
+  display:inline-flex;align-items:center;gap:.35rem;
+  font-family:var(--sans);font-size:.74rem;font-weight:600;color:var(--text-2);
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:99px;
+  padding:.34rem .7rem;cursor:pointer;white-space:nowrap;
+  transition:color .2s,border-color .2s,background .2s;
+}
+.ctlbtn:hover{color:var(--text);border-color:var(--accent);background:var(--surface-2)}
+.ctlbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctlbtn .ico{font-size:.9rem;line-height:1}
+@media (max-width:520px){
+  .ctlbtn .lbl{display:none}
+  .top .back + .back{display:none}
+}

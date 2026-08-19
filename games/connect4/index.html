@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../games.css">
+<script src="/games/joystick.js"></script>
 <script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   .board{
@@ -33,7 +34,7 @@
   .dot.p2{background:var(--accent-2)}
 </style>
 </head>
-<body>
+<body class="fit">
 
 <div class="top wide">
   <a class="back" href="/games/">&larr; games</a>
@@ -47,7 +48,7 @@
 </div>
 
 <div class="stage wide">
-  <div class="board" id="board"></div>
+  <div class="board" id="board" data-fit data-ar="1.1667"></div>
   <div class="overlay" id="overlay" hidden>
     <h2 id="ov-title"></h2>
     <p id="ov-text"></p>

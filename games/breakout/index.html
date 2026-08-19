@@ -12,12 +12,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../games.css">
+<script src="/games/joystick.js"></script>
 <script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   canvas{aspect-ratio:3/4;touch-action:none;cursor:none}
 </style>
 </head>
-<body>
+<body class="fit">
 
 <div class="top wide">
   <a class="back" href="/games/">&larr; games</a>
@@ -31,7 +32,7 @@
 </div>
 
 <div class="stage wide">
-  <canvas id="board" width="450" height="600" aria-label="Breakout game board"></canvas>
+  <canvas id="board" data-fit data-ar="0.75" width="450" height="600" aria-label="Breakout game board"></canvas>
   <div class="overlay" id="overlay">
     <h2 id="ov-title">Breakout</h2>
     <p id="ov-text">Move with the mouse, or drag anywhere on the board. Where the ball hits the paddle decides its angle.</p>
