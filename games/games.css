@@ -197,7 +197,13 @@ kbd{
 
 /* ---- one screen, no scrolling ---- */
 body.fit{
-  block-size:var(--app-h,100dvh);overflow:hidden;
+  /* the base rule keeps a min-height of 100vh, and on a phone 100vh is the
+     height with the address bar hidden — taller than what is on screen. That
+     minimum has to be released or it wins over the measured height. */
+  block-size:var(--app-h,100dvh);
+  min-block-size:0;
+  max-block-size:var(--app-h,100dvh);
+  overflow:hidden;
   padding-block:clamp(.45rem,1.6vh,1rem);gap:.55rem;
 }
 body.fit .stage{flex:1;min-block-size:0;display:flex;align-items:center;justify-content:center;inline-size:100%;max-inline-size:460px}
