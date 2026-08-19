@@ -148,19 +148,24 @@ kbd{
 }
 
 /* ---- thumb stick ---- */
-.stick{display:grid;place-items:center;flex:none}
+.stick{
+  position:relative;flex:1 1 auto;max-inline-size:210px;
+  block-size:clamp(112px,30vw,150px);
+  touch-action:none;user-select:none;-webkit-user-select:none;
+}
 .stick-base{
-  inline-size:clamp(112px,32vw,148px);aspect-ratio:1;border-radius:50%;
+  position:absolute;inset-block-start:50%;inset-inline-start:50%;
+  transform:translate(-50%,-50%);
+  inline-size:clamp(104px,28vw,140px);aspect-ratio:1;border-radius:50%;
   background:var(--surface);border:1px solid var(--line-solid);
-  display:grid;place-items:center;position:relative;
-  touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;
-  transition:border-color .18s var(--ease),background .18s var(--ease);
+  display:grid;place-items:center;pointer-events:none;
+  transition:border-color .18s var(--ease),background .18s var(--ease),opacity .18s;
 }
 .stick-base::before{
   content:"";position:absolute;inset:14%;border-radius:50%;
   border:1px dashed color-mix(in srgb,var(--text-3) 45%, transparent);
 }
-.stick-base.on{border-color:var(--accent);background:var(--surface-2);cursor:grabbing}
+.stick-base.on{border-color:var(--accent);background:var(--surface-2)}
 .stick-knob{
   inline-size:42%;block-size:42%;border-radius:50%;
   background:linear-gradient(160deg,var(--accent),var(--accent-2));
@@ -174,11 +179,12 @@ kbd{
    favoured. When a game also has action buttons the row splits the way a
    gamepad does: stick on one side, actions on the other. */
 .controls-row{
-  inline-size:100%;max-inline-size:460px;
+  inline-size:100%;max-inline-size:460px;min-block-size:0;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   direction:ltr;margin-block-start:.15rem;
 }
 .controls-row.split{justify-content:space-between}
+.controls-row:not(.split) .stick{inline-size:100%;max-inline-size:none}
 .actions-col{display:grid;gap:.5rem;grid-template-columns:1fr 1fr;flex:0 1 210px}
 .actions-col button{
   font-family:var(--mono);font-size:1.05rem;color:var(--text-2);
@@ -191,7 +197,7 @@ kbd{
 
 /* ---- one screen, no scrolling ---- */
 body.fit{
-  block-size:100dvh;overflow:hidden;
+  block-size:var(--app-h,100dvh);overflow:hidden;
   padding-block:clamp(.45rem,1.6vh,1rem);gap:.55rem;
 }
 body.fit .stage{flex:1;min-block-size:0;display:flex;align-items:center;justify-content:center;inline-size:100%;max-inline-size:460px}
@@ -212,6 +218,7 @@ html:has(body.fit){overflow:hidden}
   body.fit .keys button{min-block-size:40px;padding-block:.45rem}
   body.fit .bar{gap:.4rem}
   body.fit .btn{padding-block:.45rem}
-  body.fit .stick-base{inline-size:clamp(96px,26vw,120px)}
+  body.fit .stick{block-size:clamp(96px,26vw,124px)}
+  body.fit .stick-base{inline-size:clamp(92px,24vw,116px)}
   body.fit .actions-col button{min-block-size:42px;padding-block:.55rem}
 }
