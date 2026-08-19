@@ -28,12 +28,22 @@
       knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
     }
 
+    /* A thumb never pushes on a clean axis, so near the diagonal the dominant
+       one keeps swapping and the direction flickers. The winning axis has to
+       beat the other by a margin before it counts, and once a direction is
+       held it takes a clearer push to leave it. */
     function direction(dx, dy) {
       var d = Math.hypot(dx, dy);
       if (d < radius * DEAD) return null;
-      return Math.abs(dx) > Math.abs(dy)
-        ? (dx > 0 ? 'right' : 'left')
-        : (dy > 0 ? 'down' : 'up');
+
+      var ax = Math.abs(dx), ay = Math.abs(dy);
+      var margin = last ? 1.35 : 1.12;
+      var horizontal;
+      if (ax > ay * margin) horizontal = true;
+      else if (ay > ax * margin) horizontal = false;
+      else return last;                      // too close to call, keep going
+
+      return horizontal ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     }
 
     function begin(x, y) {
@@ -44,7 +54,10 @@
       active = true;
       last = null;
       base.classList.add('on');
-      move(x, y);
+      var dx = x - cx, dy = y - cy;
+      place(dx, dy);
+      var dir = direction(dx, dy);
+      if (dir) { last = dir; onDirection(dir); }
     }
 
     function move(x, y) {

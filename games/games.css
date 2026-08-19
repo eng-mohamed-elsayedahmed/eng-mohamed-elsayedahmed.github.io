@@ -150,7 +150,7 @@ kbd{
 /* ---- thumb stick ---- */
 .stick{display:grid;place-items:center;flex:none}
 .stick-base{
-  inline-size:clamp(104px,30vw,132px);aspect-ratio:1;border-radius:50%;
+  inline-size:clamp(112px,32vw,148px);aspect-ratio:1;border-radius:50%;
   background:var(--surface);border:1px solid var(--line-solid);
   display:grid;place-items:center;position:relative;
   touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;
@@ -169,13 +169,17 @@ kbd{
 }
 .stick-base.on .stick-knob{transition:none}
 
-/* the stick sits beside whatever action buttons a game needs */
+/* Where the stick sits matters as much as what it does. On its own it is
+   centred, so either thumb reaches it and neither edge of the phone is
+   favoured. When a game also has action buttons the row splits the way a
+   gamepad does: stick on one side, actions on the other. */
 .controls-row{
   inline-size:100%;max-inline-size:460px;
-  display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  direction:ltr;
+  display:flex;align-items:center;justify-content:center;gap:1.5rem;
+  direction:ltr;margin-block-start:.15rem;
 }
-.actions-col{display:grid;gap:.5rem;grid-template-columns:1fr 1fr;flex:1}
+.controls-row.split{justify-content:space-between}
+.actions-col{display:grid;gap:.5rem;grid-template-columns:1fr 1fr;flex:0 1 210px}
 .actions-col button{
   font-family:var(--mono);font-size:1.05rem;color:var(--text-2);
   background:var(--surface);border:1px solid var(--line-solid);border-radius:12px;
