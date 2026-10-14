@@ -1,0 +1,25 @@
+# Mohamed Mahmoud Elsayed (محمد محمود السيد أحمد)
+
+> Software Engineer, Team Lead and Product Manager based in Cairo, Egypt, open to remote roles. Former accountant (B.Com, Accounting, Helwan University, 2021; audit and tax work 2021–2023) who now leads the development team and product for Bonyan ERP, a multi-tenant SaaS ERP for project-based companies with 160+ company workspaces, and designed its double-entry accounting core.
+
+## Profile
+
+- Current role: Software Engineer → Team Lead & Product Manager (Bonyan ERP), It Plus Programming Solutions, Sep 2023 – present
+- Experience: 3+ years in software, 15+ ERP, education and e-commerce systems delivered for clients in Egypt and Saudi Arabia
+- Stack: Angular (8–21), TypeScript, Next.js, PHP 8, Laravel 12, MySQL, Flutter/Dart, REST, OAuth 2.0, MCP
+- Domain: chart of accounts, double-entry general ledger, financial statements, period and year-end closing, fixed assets (IAS 16/36), inventory costing (IAS 2), procure-to-pay with three-way matching, VAT and withholding tax, payroll accruals, multi-tenant SaaS
+- Leadership: team lead, product management, customer feedback and discovery, specs and roadmaps, code review, release management
+- Languages: Arabic (native), English
+
+## Key work
+
+- [Bonyan ERP case study](https://eng-mohamed-elsayedahmed.github.io/portfolio/projects/bonyan-erp.html): multi-tenant SaaS ERP; built its foundation (Loom ERP) from scratch, designed its accounting core, upgraded Angular 8 → 21, built an MCP gateway for AI assistants
+- [Ataa mobile case study](https://eng-mohamed-elsayedahmed.github.io/portfolio/projects/ataa-mobile.html): two production Flutter apps (QMS and OPS) for a Saudi education authority
+- [Full portfolio](https://eng-mohamed-elsayedahmed.github.io/portfolio/): all projects, skills and experience (English and Arabic)
+
+## Contact
+
+- [CV (PDF)](https://eng-mohamed-elsayedahmed.github.io/portfolio/Mohamed_Elsayed_CV.pdf)
+- Email: mohamedalsayidahmed@gmail.com
+- Phone / WhatsApp: +20 101 748 3005
+- [LinkedIn](https://www.linkedin.com/in/mohamed-mahmoud-957731222/)

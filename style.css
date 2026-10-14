@@ -250,3 +250,6 @@ h1{
   .keys button, .pad button, .presets button{min-block-size:46px}
   .back{padding-block:.5rem}
 }
+
+.job h3 a{color:inherit;text-decoration:none}
+.job h3 a:hover{color:var(--accent-2)}

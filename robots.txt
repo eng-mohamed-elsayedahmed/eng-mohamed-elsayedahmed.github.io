@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+Sitemap: https://eng-mohamed-elsayedahmed.github.io/sitemap.xml
+Sitemap: https://eng-mohamed-elsayedahmed.github.io/portfolio/sitemap.xml
