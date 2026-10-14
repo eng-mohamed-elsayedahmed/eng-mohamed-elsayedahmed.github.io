@@ -13,7 +13,7 @@
 
 ## Key work
 
-- [Bonyan ERP case study](https://eng-mohamed-elsayedahmed.github.io/portfolio/projects/bonyan-erp.html): multi-tenant SaaS ERP; built its foundation (Loom ERP) from scratch, designed its accounting core, upgraded Angular 8 → 21, built an MCP gateway for AI assistants
+- [Bonyan ERP case study](https://eng-mohamed-elsayedahmed.github.io/portfolio/projects/bonyan-erp.html): multi-tenant SaaS ERP; built its foundation (Loom ERP) from scratch and its bilingual Next.js website (bonyan-erp.com), designed its accounting core, upgraded Angular 8 → 21, built an MCP gateway for AI assistants
 - [Ataa mobile case study](https://eng-mohamed-elsayedahmed.github.io/portfolio/projects/ataa-mobile.html): two production Flutter apps (QMS and OPS) for a Saudi education authority
 - [Full portfolio](https://eng-mohamed-elsayedahmed.github.io/portfolio/): all projects, skills and experience (English and Arabic)
 
